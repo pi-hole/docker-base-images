@@ -7,4 +7,12 @@ dpkg -i libpam-modules_*.deb \
         libpam-modules-bin_*.deb \
         libpam-runtime_*.deb \
         libpam0g_*.deb
+
+# Hold patched packages so users don't accidently unpatch the image with
+# apt-get upgrade
+apt-mark hold libpam-modules
+apt-mark hold libpam-modules-bin
+apt-mark hold libpam-runtime
+apt-mark hold libpam0g
+
 rm /*.deb

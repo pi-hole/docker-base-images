@@ -1,7 +1,14 @@
-# Debian docker with a custom pam build
+# pihole/docker-base-images
 
-Custom pam rebuilt with `--disable-audit` to help older kernel machines like synology that may not have the option to upgrade their kernel.
+Docker images used by other processes within pihole
 
-- Docker/Moby bug details: https://github.com/moby/moby/issues/5899
-- Based off : [sequenceiq/pam](https://github.com/sequenceiq/docker-pam/)
-- [docker-pi-hole issue #243](https://github.com/pi-hole/docker-pi-hole/issues/243)
+## What is here?
+
+- debian-base: The pihole/docker-pi-hole aka docker image `pihole/pihole` uses this for x86 architecture's base for synolgoy compatiblity
+  - TODO: upgrade to buster and perhaps we don't even need to disable auditd anymore? Needs investigation
+- ftl-build: All of the images used by the pihole/FTL repo to build the contents of that repo
+
+## How does it get uploaded
+
+CircleCI magic.
+

@@ -10,6 +10,7 @@ version: 2
           cd "${BASEDIR:-.}/${CIRCLE_JOB}"
           [[ $IMAGE != *"/"* ]] && IMAGE="diginc/${IMAGE}"
           [[ $IMAGE != *":"* ]] && IMAGE="${IMAGE}:$CIRCLE_JOB"
+          [[ $IMAGE == *"qemu"* ]] && sudo docker run --rm --privileged multiarch/qemu-user-static:register --reset
           sudo docker login --username=$DOCKERHUB_USER --password=$DOCKERHUB_PASS
           echo "Building $IMAGE"
           sudo docker build --pull -t $IMAGE .
@@ -23,6 +24,12 @@ jobs:
       IMAGE: "debian-base:latest"
 
   arm:
+    <<: *job_template
+    environment:
+      BASEDIR: "ftl-build"
+      IMAGE: "ftl-build"
+
+  arm-qemu:
     <<: *job_template
     environment:
       BASEDIR: "ftl-build"
@@ -68,6 +75,10 @@ workflows:
             tags:
               only: /^v.*/
       - arm:
+          filters:
+            tags:
+              only: /^v.*/
+      - arm-qemu:
           filters:
             tags:
               only: /^v.*/

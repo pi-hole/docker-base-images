@@ -5,7 +5,7 @@ FROM alpine:3.10
 # 3rd line: Packages needed for testing
 RUN apk add --no-cache alpine-sdk linux-headers gmp-dev nettle-dev \
                        openssh-client \
-                       sqlite bash bind-tools libcap shadow
+                       sqlite bash bind-tools libcap shadow curl
 
 # Install ghr for GitHub Releases: https://github.com/tcnksm/ghr
 RUN wget https://github.com/tcnksm/ghr/releases/download/v0.12.0/ghr_v0.12.0_linux_amd64.tar.gz && \

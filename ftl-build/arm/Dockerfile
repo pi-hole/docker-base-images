@@ -1,4 +1,4 @@
-FROM debian:stretch
+FROM debian:buster
 
 # Packages required to install compiler and libraries
 RUN dpkg --add-architecture armel \

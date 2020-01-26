@@ -14,6 +14,7 @@ RUN apt-get update \
         libcap2-bin \
         libcap-dev \
         libc-dev \
+        libidn11-dev \
         make \
         netcat-traditional \
         nettle-dev \

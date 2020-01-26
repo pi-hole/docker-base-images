@@ -11,6 +11,7 @@ RUN apt-get update \
         git \
         libcap2-bin \
         libgmp-dev \
+        libidn11-dev \
         m4 \
     && rm -rf /var/lib/apt/lists/*
 

@@ -15,7 +15,7 @@ RUN dpkg --add-architecture i386 \
         git \
         libcap2-bin \
         libcap-dev:i386 \
-        libidn11-dev \
+        libidn11-dev:i386 \
         make \
         netcat-traditional \
         nettle-dev:i386 \

@@ -15,6 +15,7 @@ RUN dpkg --add-architecture armhf \
         libc6-dev-armhf-cross \
         libcap-dev:armhf \
         libcap2-bin \
+        libidn11-dev:armhf \
         make \
         netcat-traditional \
         nettle-dev:armhf \

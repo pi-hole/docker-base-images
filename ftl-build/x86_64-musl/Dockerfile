@@ -10,6 +10,7 @@ RUN apk add --no-cache \
         curl \
         gmp-dev \
         libcap \
+        libidn-dev \
         linux-headers \
         nettle-dev \
         openssh-client \

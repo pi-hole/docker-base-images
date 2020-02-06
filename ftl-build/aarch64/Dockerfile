@@ -15,6 +15,7 @@ RUN dpkg --add-architecture arm64 \
         libc-dev-arm64-cross \
         libcap-dev:arm64 \
         libcap2-bin \
+        libidn11-dev:arm64 \
         make \
         netcat-traditional \
         nettle-dev:arm64 \

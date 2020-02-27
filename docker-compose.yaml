@@ -1,0 +1,42 @@
+version: '3.7'
+
+services:
+  debian-base:
+    image: pihole/debian-base:latest
+    build:
+      context: debian-base
+
+  ftl-build_aarch64:
+    image: pihole/ftl-build:aarch64
+    build:
+      context: ftl-build/aarch64
+
+  ftl-build_arm:
+    image: pihole/ftl-build:arm
+    build:
+      context: ftl-build/arm
+
+  ftl-build_arm-qemu:
+    image: pihole/ftl-build:arm-qemu
+    build:
+      context: ftl-build/arm-qemu
+
+  ftl-build_armhf:
+    image: pihole/ftl-build:armhf
+    build:
+      context: ftl-build/arm-qemu
+
+  ftl-build_x86_32:
+    image: pihole/ftl-build:x86_32
+    build:
+      context: ftl-build/x86_32
+
+  ftl-build_x86_64:
+    image: pihole/ftl-build:x86_64
+    build:
+      context: ftl-build/x86_64
+
+  ftl-build_x86_64-musl:
+    image: pihole/ftl-build:x86_64-musl
+    build:
+      context: ftl-build/x86_64-musl

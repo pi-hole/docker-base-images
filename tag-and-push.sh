@@ -1,4 +1,4 @@
-#!/bin/bash -ex
+#!/bin/bash -e
 
 function main() {
   current_git_tag=$(git describe --tags --exact-match || true)
@@ -6,7 +6,7 @@ function main() {
 
   # Push debian tags
   tag_and_push "pihole/debian-base" "latest" "${current_git_tag}"
-  branch_based_tag=$(build_debian_branch_tag "${current_git_tag}")
+  branch_based_tag=$(build_debian_branch_tag "${current_branch}")
   tag_and_push "pihole/debian-base" "latest" "${branch_based_tag}"
 
   # Push ftl-build tags
@@ -25,6 +25,7 @@ function tag_and_push() {
   local_tag="${2}"
   target_tag="${3}"
   if [ -n "${target_tag}" ]; then
+    echo "Tagging ${image}:${target_tag}"
     docker tag "${image}:${local_tag}" "${image}:${target_tag}"
     docker push "${image}:${target_tag}"
   fi
@@ -68,7 +69,7 @@ function build_ftl_git_tag_tag() {
   git_tag="${2}"
 
   if [ -n "${git_tag}" ]; then
-    echo "${current_git_tag}-${flavor}"
+    echo "${git_tag}-${flavor}"
   fi
 }
 

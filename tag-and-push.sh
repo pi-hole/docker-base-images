@@ -1,22 +1,26 @@
 #!/bin/bash -e
 
 function main() {
-  current_git_tag=$(git describe --tags --exact-match || true)
+  target="${1}"
+  current_git_tag=$(git describe --tags --exact-match 2> /dev/null || true)
   current_branch=$(git rev-parse --abbrev-ref HEAD | sed "s/\//-/g")
 
   # Push debian tags
-  tag_and_push "pihole/debian-base" "latest" "${current_git_tag}"
-  branch_based_tag=$(build_debian_branch_tag "${current_branch}")
-  tag_and_push "pihole/debian-base" "latest" "${branch_based_tag}"
+  if [ "${target}" = "debian-base" ]; then
+      tag_and_push "pihole/debian-base" "latest" "${current_git_tag}"
+      branch_based_tag=$(build_debian_branch_tag "${current_branch}")
+      tag_and_push "pihole/debian-base" "latest" "${branch_based_tag}"
+  fi
 
-  # Push ftl-build tags
-  for flavor in "aarch64" "arm" "arm-qemu" "armhf" "x86_32" "x86_64" "x86_64-musl"; do
+  # Push FTL tags
+  if [ "${target:0:9}" = "ftl-build" ]; then
+    flavor=${target:10:$$}
     branch_based_tag=$(build_ftl_branch_tag "${flavor}" "${current_branch}")
     tag_and_push "pihole/ftl-build" "${flavor}" "${branch_based_tag}"
 
     git_tag_based_tag=$(build_ftl_git_tag_tag "${flavor}" "${current_git_tag}")
     tag_and_push "pihole/ftl-build" "${flavor}" "${git_tag_based_tag}"
-  done
+  fi
 }
 
 # Tag and push a docker image if the given tag isn't empty
@@ -73,4 +77,4 @@ function build_ftl_git_tag_tag() {
   fi
 }
 
-main
+main "$@"

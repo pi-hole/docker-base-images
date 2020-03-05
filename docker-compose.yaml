@@ -6,6 +6,11 @@ services:
     build:
       context: debian-base
 
+  web-build:
+    image: pihole/web-build:latest
+    build:
+      context: web-build
+
   ftl-build_aarch64:
     image: pihole/ftl-build:aarch64
     build:

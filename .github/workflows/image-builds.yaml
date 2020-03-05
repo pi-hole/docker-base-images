@@ -14,6 +14,7 @@ jobs:
       matrix:
         TARGET:
           - debian-base
+          - web-build
           - ftl-build_aarch64
           - ftl-build_arm
           - ftl-build_arm-qemu

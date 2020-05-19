@@ -16,7 +16,8 @@ RUN mkdir rpi_tools && cd rpi_tools && git init && git remote add origin https:/
 RUN wget ftl.pi-hole.net/libraries/libgmp.a -O /usr/local/lib/libgmp.a && \
     wget ftl.pi-hole.net/libraries/libnettle.a -O /usr/local/lib/libnettle.a && \
     wget ftl.pi-hole.net/libraries/libhogweed.a -O /usr/local/lib/libhogweed.a && \
-    wget ftl.pi-hole.net/libraries/libcap.so.2.25 -O /usr/local/lib/libcap.so
+    wget ftl.pi-hole.net/libraries/libcap.so.2.25 -O /usr/local/lib/libcap.so && \
+    wget ftl.pi-hole.net/libraries/libidn2.so.0.1.4 -O  /usr/local/lib/libidn2.so
 
 RUN dpkg --add-architecture armhf && \
     apt-get update && \
@@ -28,5 +29,8 @@ RUN wget https://github.com/tcnksm/ghr/releases/download/v0.12.0/ghr_v0.12.0_lin
     tar -xzf ghr_*_linux_amd64.tar.gz && \
     mv ghr_*_linux_amd64/ghr /usr/bin/ghr
 
-# Allow libnettle and libidn to be used, because this GCC doesn't have all the right header and library directories
-ENV CC "arm-linux-gnueabihf-gcc -I/usr/include -I/usr/include/arm-linux-gnueabihf -L/usr/lib/arm-linux-gnueabihf -L/usr/local/lib"
+# We use the libnettle and libidn headers from the armhf packages, however, we
+# use the armv6 compatible libraries we built on a Raspberry Pi Zero and
+# uploaded them to ftl.pi-hole.net. Note that we do NOT include
+# -L/usr/lib/arm-linux-gnueabihf here as this would result in incompatible binaries
+ENV CC "arm-linux-gnueabihf-gcc -I/usr/include -I/usr/include/arm-linux-gnueabihf -L/usr/local/lib"

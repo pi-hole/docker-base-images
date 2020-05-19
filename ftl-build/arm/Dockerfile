@@ -19,18 +19,22 @@ RUN wget ftl.pi-hole.net/libraries/libgmp.a -O /usr/local/lib/libgmp.a && \
     wget ftl.pi-hole.net/libraries/libcap.so.2.25 -O /usr/local/lib/libcap.so && \
     wget ftl.pi-hole.net/libraries/libidn2.so.0.1.4 -O  /usr/local/lib/libidn2.so
 
-RUN dpkg --add-architecture armhf && \
+RUN dpkg --add-architecture armel && \
     apt-get update && \
     apt-get install -y --no-install-recommends make file netcat-traditional ssh \
-        nettle-dev:armhf libcap-dev sqlite3 libcap2-bin dnsutils libidn11-dev:armhf
+        nettle-dev:armel libcap-dev sqlite3 libcap2-bin dnsutils libidn11-dev:armel \
+        libgmp-dev:armel
 
 # Install ghr for GitHub Releases: https://github.com/tcnksm/ghr
 RUN wget https://github.com/tcnksm/ghr/releases/download/v0.12.0/ghr_v0.12.0_linux_amd64.tar.gz && \
     tar -xzf ghr_*_linux_amd64.tar.gz && \
     mv ghr_*_linux_amd64/ghr /usr/bin/ghr
 
-# We use the libnettle and libidn headers from the armhf packages, however, we
+# We use the libnettle and libidn headers from the armel packages, however, we
 # use the armv6 compatible libraries we built on a Raspberry Pi Zero and
 # uploaded them to ftl.pi-hole.net. Note that we do NOT include
 # -L/usr/lib/arm-linux-gnueabihf here as this would result in incompatible binaries
-ENV CC "arm-linux-gnueabihf-gcc -I/usr/include -I/usr/include/arm-linux-gnueabihf -L/usr/local/lib"
+ENV CC "arm-linux-gnueabihf-gcc -I/usr/include -I/usr/include/arm-linux-gnueabi -L/usr/local/lib"
+
+# Uncomment the following line to test-compile FTL master during docker container development
+# RUN git clone https://github.com/pi-hole/FTL.git && cd FTL && make -j $(nproc)

@@ -2,6 +2,11 @@ name: Image Builds
 on:
   pull_request:
   push:
+    branches:
+      - master
+      # add any branch names here that should build on push.
+      # the branch name will be included in the resulting docker tag.
+      - dev
   schedule:
     # 2:30am UTC every Sunday, has no particular significance
     - cron: '30 2 * * 0'

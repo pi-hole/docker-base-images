@@ -13,6 +13,7 @@ RUN apt-get update \
         libgmp-dev \
         libidn11-dev \
         m4 \
+        binutils \
     && rm -rf /var/lib/apt/lists/*
 
 RUN curl -sSL https://ftp.gnu.org/gnu/nettle/nettle-${nettleversion}.tar.gz  | tar -xz \

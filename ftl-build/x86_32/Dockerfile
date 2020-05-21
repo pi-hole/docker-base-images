@@ -22,6 +22,7 @@ RUN dpkg --add-architecture i386 \
         sqlite3 \
         ssh \
         wget \
+        binutils \
     && rm -rf /var/lib/apt/lists/*
 
 # Install ghr for GitHub Releases: https://github.com/tcnksm/ghr

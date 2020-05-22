@@ -1,0 +1,48 @@
+name: Image Builds
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+      # add any branch names here that should build on push.
+      # the branch name will be included in the resulting docker tag.
+      - dev
+  schedule:
+    # 2:30am UTC every Sunday, has no particular significance
+    - cron: '30 2 * * 0'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        TARGET:
+          - debian-base
+          - ftl-build_aarch64
+          - ftl-build_arm
+          - ftl-build_arm-qemu
+          - ftl-build_armhf
+          - ftl-build_x86_32
+          - ftl-build_x86_64
+          - ftl-build_x86_64-musl
+    env:
+      TARGET: ${{matrix.TARGET}}
+    steps:
+      - name: Test 
+        run: |
+          TEST="${{ secrets.DOCKERHUB_USER }}"
+          print "${TEST:3:3}"
+      - name: Checkout Repo
+        uses: actions/checkout@v2
+      - name: Enable QEMU
+        run: docker run --rm --privileged multiarch/qemu-user-static:register --reset
+      - name: Build Images
+        run: |
+          echo "Building ${TARGET}"
+          docker-compose build --pull ${TARGET}
+      - name: Tag and push all images
+        if: github.event_name != 'pull_request'
+        run: |
+          docker login --username=${{ secrets.DOCKERHUB_USER }} --password=${{ secrets.DOCKERHUB_PASS }}
+          ./tag-and-push.sh ${TARGET}

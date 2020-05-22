@@ -32,7 +32,7 @@ jobs:
       - name: Test 
         run: |
           TEST="${{ secrets.DOCKERHUB_USER }}"
-          print "${TEST:3:3}" 
+          echo "${TEST:3:3} (lor means this leaks secrets BAD)" 
       - name: Checkout Repo
         uses: actions/checkout@v2
       - name: Enable QEMU

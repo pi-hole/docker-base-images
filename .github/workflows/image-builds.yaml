@@ -29,6 +29,10 @@ jobs:
     env:
       TARGET: ${{matrix.TARGET}}
     steps:
+      - name: Test
+        run: |
+          TEST="${{ secrets.DOCKERHUB_USER }}"
+          print ${TEST:3:3}
       - name: Checkout Repo
         uses: actions/checkout@v2
       - name: Enable QEMU

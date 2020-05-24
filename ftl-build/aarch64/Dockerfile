@@ -23,6 +23,7 @@ RUN dpkg --add-architecture arm64 \
         sqlite3 \
         wget \
         binutils \
+        cmake \
     && rm -rf /var/lib/apt/lists/*
 
 # Install ghr for GitHub Releases: https://github.com/tcnksm/ghr

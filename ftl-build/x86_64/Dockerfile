@@ -22,6 +22,7 @@ RUN apt-get update \
         ssh \
         wget \
         binutils \
+        cmake \
     && rm -rf /var/lib/apt/lists/*
 
 # Install ghr for GitHub Releases: https://github.com/tcnksm/ghr

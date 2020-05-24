@@ -15,6 +15,7 @@ RUN dpkg --add-architecture armel \
     sqlite3 \
     dnsutils \
     binutils \
+    cmake \
     nettle-dev:armel \
     libcap-dev:armel \
     libgmp-dev:armel \

@@ -5,11 +5,16 @@ function main() {
   current_git_tag=$(git describe --tags --exact-match 2> /dev/null || true)
   current_branch=$(git rev-parse --abbrev-ref HEAD | sed "s/\//-/g")
 
-  # Push debian tags
-  if [ "${target}" = "debian-base" ]; then
-      tag_and_push "pihole/debian-base" "latest" "${current_git_tag}"
-      branch_based_tag=$(build_debian_branch_tag "${current_branch}")
-      tag_and_push "pihole/debian-base" "latest" "${branch_based_tag}"
+  # Push debian and web-build tags
+  if [ "${target}" = "debian-base" ] || [ "${target}" = "web-build" ]; then
+      tag_and_push "pihole/${target}" "latest" "${current_git_tag}"
+      branch_based_tag=$(build_branch_tag "${current_branch}")
+      tag_and_push "pihole/${target}" "latest" "${branch_based_tag}"
+  fi
+
+  # Push web-build node version
+  if [ "${target}" = "web-build" ]; then
+      tag_and_push "pihole/${target}" "latest" "12"
   fi
 
   # Push FTL tags
@@ -39,7 +44,7 @@ function tag_and_push() {
 # examples:
 #     dev branch: dev
 #     master branch: latest
-function build_debian_branch_tag() {
+function build_branch_tag() {
   branch="${1}"
 
   if [ "${branch}" = "master" ]; then

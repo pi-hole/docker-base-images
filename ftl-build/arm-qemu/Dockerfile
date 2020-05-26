@@ -1,6 +1,7 @@
 FROM multiarch/debian-debootstrap:armel-buster-slim
 
 ARG nettleversion=3.4
+ENV CURL_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
 
 RUN apt-get update \
     && apt-get install --no-install-recommends -y \

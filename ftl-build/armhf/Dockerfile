@@ -2,6 +2,7 @@ FROM debian:buster
 
 # ghr 0.13.0 2019-09-16
 ARG ghrversion=0.13.0
+ENV CURL_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
 
 RUN dpkg --add-architecture armhf \
     && apt-get update \

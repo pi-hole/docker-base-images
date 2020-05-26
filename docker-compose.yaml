@@ -1,10 +1,19 @@
 version: '3.7'
 
 services:
-  debian-base:
-    image: pihole/debian-base:latest
+  debian-base-stretch:
+    image: pihole/debian-base:stretch
     build:
       context: debian-base
+      args:
+        DEBIAN_VERSION: stretch
+
+  debian-base-buster:
+    image: pihole/debian-base:buster
+    build:
+      context: debian-base
+      args:
+        DEBIAN_VERSION: buster
 
   web-build:
     image: pihole/web-build:latest

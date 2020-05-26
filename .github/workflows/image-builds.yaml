@@ -20,7 +20,8 @@ jobs:
       fail-fast: false
       matrix:
         TARGET:
-          - debian-base
+          - debian-base-stretch
+          - debian-base-buster
           - web-build
           - ftl-build_aarch64
           - ftl-build_arm

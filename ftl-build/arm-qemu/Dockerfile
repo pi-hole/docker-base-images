@@ -6,7 +6,7 @@ RUN apt-get update \
     && apt-get install --no-install-recommends -y \
         build-essential \
         ca-certificates \
-        curl \
+        wget \
         dnsutils \
         git \
         libcap2-bin \
@@ -17,7 +17,7 @@ RUN apt-get update \
         cmake \
     && rm -rf /var/lib/apt/lists/*
 
-RUN curl -sSL https://ftp.gnu.org/gnu/nettle/nettle-${nettleversion}.tar.gz  | tar -xz \
+RUN wget -O - https://ftp.gnu.org/gnu/nettle/nettle-${nettleversion}.tar.gz  | tar -xz \
     && cd nettle-${nettleversion} \
     && ./configure \
     && make -j $(nproc) \

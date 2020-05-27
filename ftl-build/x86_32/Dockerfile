@@ -7,7 +7,6 @@ RUN dpkg --add-architecture i386 \
     && apt-get update \
     && apt-get install --no-install-recommends -y \
         ca-certificates \
-        curl \
         dnsutils \
         file \
         gcc \
@@ -27,7 +26,7 @@ RUN dpkg --add-architecture i386 \
     && rm -rf /var/lib/apt/lists/*
 
 # Install ghr for GitHub Releases: https://github.com/tcnksm/ghr
-RUN curl -sSL https://github.com/tcnksm/ghr/releases/download/v${ghrversion}/ghr_v${ghrversion}_linux_amd64.tar.gz | \
+RUN wget -O - https://github.com/tcnksm/ghr/releases/download/v${ghrversion}/ghr_v${ghrversion}_linux_amd64.tar.gz | \
     tar --strip-components=1 -C /usr/bin/ -xz \
     ghr_v${ghrversion}_linux_amd64/ghr
 

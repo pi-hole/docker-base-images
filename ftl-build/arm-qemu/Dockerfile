@@ -1,4 +1,4 @@
-FROM multiarch/debian-debootstrap:armel-stretch-slim
+FROM multiarch/debian-debootstrap:armel-buster-slim
 
 ARG nettleversion=3.4
 

@@ -1,4 +1,4 @@
-FROM debian:stretch
+FROM debian:buster
 
 # ghr 0.13.0 2019-09-16
 ARG ghrversion=0.13.0

@@ -38,7 +38,7 @@ services:
   ftl-build_armhf:
     image: pihole/ftl-build:armhf
     build:
-      context: ftl-build/arm-qemu
+      context: ftl-build/armhf
 
   ftl-build_x86_32:
     image: pihole/ftl-build:x86_32

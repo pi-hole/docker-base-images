@@ -21,16 +21,16 @@ RUN apt-get update \
 
 RUN curl -sSL https://ftl.pi-hole.net/libraries/nettle-${nettleversion}.tar.gz | tar -xz \
     && cd nettle-${nettleversion} \
-    && ./configure --enable-static --disable-shared --disable-doc --without-examples \
-    && make -j $(nproc) \
+    && ./configure --host=armv5-linux-gnueabi --enable-static --disable-shared --disable-doc --without-examples \
+    && make \
     && make install \
     && cd .. \
     && rm -r nettle-${nettleversion}
 
 RUN curl -sSL https://ftl.pi-hole.net/libraries/termcap-${termcapversion}.tar.gz | tar -xz \
     && cd termcap-${termcapversion} \
-    && ./configure --enable-static --disable-shared --disable-doc --without-examples \
-    && make -j $(nproc) \
+    && ./configure --host=armv5-linux-gnueabi --enable-static --disable-shared --disable-doc --without-examples \
+    && make \
     && make install \
     && ls /usr/local/lib/ \
     && cd .. \
@@ -38,8 +38,8 @@ RUN curl -sSL https://ftl.pi-hole.net/libraries/termcap-${termcapversion}.tar.gz
 
 RUN curl -sSL https://ftl.pi-hole.net/libraries/readline-${readlineversion}.tar.gz | tar -xz \
     && cd readline-${readlineversion} \
-    && ./configure --enable-static --disable-shared --disable-doc --without-examples \
-    && make -j $(nproc) \
+    && ./configure --host=armv5-linux-gnueabi --enable-static --disable-shared --disable-doc --without-examples \
+    && make \
     && make install-static \
     && ls /usr/local/lib/ \
     && cd .. \

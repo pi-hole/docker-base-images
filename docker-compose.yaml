@@ -25,20 +25,25 @@ services:
     build:
       context: ftl-build/aarch64
 
-  ftl-build_arm:
-    image: pihole/ftl-build:arm
+  ftl-build_armv4t:
+    image: pihole/ftl-build:armv4t
     build:
-      context: ftl-build/arm
+      context: ftl-build/armv4t
 
-  ftl-build_arm-qemu:
-    image: pihole/ftl-build:arm-qemu
+  ftl-build_armv5te:
+    image: pihole/ftl-build:armv5te
     build:
-      context: ftl-build/arm-qemu
+      context: ftl-build/armv5te
 
-  ftl-build_armhf:
-    image: pihole/ftl-build:armhf
+  ftl-build_armv6hf:
+    image: pihole/ftl-build:armv6hf
     build:
-      context: ftl-build/armhf
+      context: ftl-build/armv6hf
+
+  ftl-build_armv7hf:
+    image: pihole/ftl-build:armv7hf
+    build:
+      context: ftl-build/armv7hf
 
   ftl-build_x86_32:
     image: pihole/ftl-build:x86_32

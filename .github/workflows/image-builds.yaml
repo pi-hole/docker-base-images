@@ -24,9 +24,10 @@ jobs:
           - debian-base-buster
           - web-build
           - ftl-build_aarch64
-          - ftl-build_arm
-          - ftl-build_arm-qemu
-          - ftl-build_armhf
+          - ftl-build_armv4t
+          - ftl-build_armv5te
+          - ftl-build_armv6hf
+          - ftl-build_armv7hf
           - ftl-build_x86_32
           - ftl-build_x86_64
           - ftl-build_x86_64-musl
@@ -35,8 +36,6 @@ jobs:
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v2
-      - name: Enable QEMU
-        run: docker run --rm --privileged multiarch/qemu-user-static:register --reset
       - name: Build Images
         run: |
           echo "Building ${TARGET}"

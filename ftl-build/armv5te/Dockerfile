@@ -3,6 +3,7 @@ FROM debian:buster
 # ghr 0.13.0 2019-09-16
 ARG ghrversion=0.13.0
 
+ARG idnversion=1.36
 ARG readlineversion=8.0
 ARG termcapversion=1.3.1
 
@@ -18,7 +19,6 @@ RUN dpkg --add-architecture armel \
         libc6-dev-armel-cross \
         libcap-dev:armel \
         libcap2-bin \
-        libidn11-dev:armel \
         make \
         netcat-traditional \
         nettle-dev:armel \
@@ -38,6 +38,13 @@ RUN curl -sSL https://github.com/tcnksm/ghr/releases/download/v${ghrversion}/ghr
 ENV CC "arm-linux-gnueabi-gcc -isystem /usr/local/include"
 RUN ln -s /usr/arm-linux-gnueabi/lib/libm.so /usr/local/lib/
 
+RUN curl -sSL https://ftl.pi-hole.net/libraries/libidn-${idnversion}.tar.gz | tar -xz \
+    && cd libidn-${idnversion} \
+    && ./configure --host=armv6-linux-gnueabi --enable-static --disable-shared --disable-doc --without-examples \
+    && make -j $(nproc) install \
+    && cd .. \
+    && rm -r libidn-${idnversion}
+
 RUN curl -sSL https://ftl.pi-hole.net/libraries/termcap-${termcapversion}.tar.gz | tar -xz \
     && cd termcap-${termcapversion} \
     && ./configure --host=arm-linux-gnueabi --enable-static --disable-shared --disable-doc --without-examples \
@@ -56,6 +63,6 @@ RUN curl -sSL https://ftl.pi-hole.net/libraries/readline-${readlineversion}.tar.
     && cd .. \
     && rm -r readline-${readlineversion}
 
-# Uncomment the following line to test-compile FTL master during docker container development
+# Uncomment the following line to test-compile FTL development during docker container development
 # RUN git clone https://github.com/pi-hole/FTL.git && cd FTL && git checkout development \
 #     && bash build.sh -DLUA_READLINE=true && readelf -A ./pihole-FTL

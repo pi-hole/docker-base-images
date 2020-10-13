@@ -1,4 +1,4 @@
-FROM debian:stretch
+FROM debian:buster
 
 # ghr 0.13.0 2019-09-16
 ARG ghrversion=0.13.0
@@ -55,6 +55,6 @@ RUN curl -sSL https://ftl.pi-hole.net/libraries/readline-${readlineversion}.tar.
     && cd .. \
     && rm -r readline-${readlineversion}
 
-# Uncomment the following line to test-compile FTL master during docker container development
-#RUN git clone https://github.com/pi-hole/FTL.git && cd FTL && git checkout development \
-#    && bash build.sh -DLUA_READLINE=true && readelf -A ./pihole-FTL
+# Uncomment the following line to test-compile FTL development during docker container development
+# RUN git clone https://github.com/pi-hole/FTL.git && cd FTL && git checkout development \
+#     && bash build.sh -DLUA_READLINE=true && readelf -A ./pihole-FTL

@@ -1,6 +1,11 @@
 # Note that this has to stay at stretch as buster removed ARMv4T compliance
 FROM debian:stretch
 
+# For FTL test compilation
+ARG CIRCLE_JOB="armv4t"
+ARG CIRCLE_TAG="test-build"
+ARG BRANCH="special/CI_development"
+
 # ghr 0.13.0 2019-09-16
 ARG ghrversion=0.13.0
 
@@ -65,6 +70,12 @@ RUN curl -sSL https://ftl.pi-hole.net/libraries/readline-${readlineversion}.tar.
     && cd .. \
     && rm -r readline-${readlineversion}
 
-# Uncomment the following line to test-compile FTL development during docker container development
-# RUN git clone https://github.com/pi-hole/FTL.git && cd FTL && git checkout development \
-#     && bash build.sh -DLUA_READLINE=true && readelf -A ./pihole-FTL
+# Test compile FTL's development branch, the result is removed from the final container
+# We accept errors in the test step to be able to update the arch_tests if a change is intended
+RUN git clone https://github.com/pi-hole/FTL.git \
+    && cd FTL \
+    && git checkout "${BRANCH}" \
+    && bash .circleci/build-CI.sh "${STATIC}" "${BRANCH}" "${CIRCLE_TAG}" "${CIRCLE_JOB}" \
+    && bash test/arch_test.sh \
+    && cd .. \
+    && rm -r FTL

@@ -45,6 +45,11 @@ services:
     build:
       context: ftl-build/armv7hf
 
+  ftl-build_armv8a:
+    image: pihole/ftl-build:armv8a
+    build:
+      context: ftl-build/armv8a
+
   ftl-build_x86_32:
     image: pihole/ftl-build:x86_32
     build:

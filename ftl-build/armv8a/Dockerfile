@@ -1,7 +1,7 @@
 FROM debian:buster
 
 # For FTL test compilation
-ARG CIRCLE_JOB="x86_32"
+ARG CIRCLE_JOB="armv8a"
 ARG CIRCLE_TAG="test-build"
 ARG BRANCH="special/CI_development"
 
@@ -12,47 +12,47 @@ ARG idnversion=1.36
 ARG readlineversion=8.0
 ARG termcapversion=1.3.1
 
-RUN dpkg --add-architecture i386 \
+RUN dpkg --add-architecture armhf \
     && apt-get update \
     && apt-get install --no-install-recommends -y \
         ca-certificates \
         curl \
         dnsutils \
         file \
-        gcc \
-        gcc-multilib \
+        gcc-arm-linux-gnueabihf \
         git \
+        libc6-dev-armhf-cross \
+        libcap-dev:armhf \
         libcap2-bin \
-        libcap-dev:i386 \
         make \
         netcat-traditional \
-        nettle-dev:i386 \
-        sqlite3 \
+        nettle-dev:armhf \
         ssh \
+        sqlite3 \
         wget \
         binutils \
         cmake \
-        libc6:i386 \
+        libc6:armhf \
     && rm -rf /var/lib/apt/lists/*
-
+    
 # Install ghr for GitHub Releases: https://github.com/tcnksm/ghr
 RUN curl -sSL https://github.com/tcnksm/ghr/releases/download/v${ghrversion}/ghr_v${ghrversion}_linux_amd64.tar.gz | \
     tar --strip-components=1 -C /usr/bin/ -xz \
     ghr_v${ghrversion}_linux_amd64/ghr
 
-ENV CC "gcc -m32"
-RUN ln -s /usr/lib32/libm.so /usr/local/lib/
+ENV CC "arm-linux-gnueabihf-gcc -march=armv8-a -isystem /usr/local/include"
+RUN ln -s /usr/arm-linux-gnueabihf/lib/libm.so /usr/local/lib/
 
 RUN curl -sSL https://ftl.pi-hole.net/libraries/libidn-${idnversion}.tar.gz | tar -xz \
     && cd libidn-${idnversion} \
-    && ./configure --host=armv7-linux-gnueabi --enable-static --disable-shared --disable-doc --without-examples \
+    && ./configure --host=armv8-linux-gnueabi --enable-static --disable-shared --disable-doc --without-examples \
     && make -j $(nproc) install \
     && cd .. \
     && rm -r libidn-${idnversion}
 
 RUN curl -sSL https://ftl.pi-hole.net/libraries/termcap-${termcapversion}.tar.gz | tar -xz \
     && cd termcap-${termcapversion} \
-    && ./configure --enable-static --disable-shared --disable-doc --without-examples \
+    && ./configure --host=armv8-linux-gnueabihf --enable-static --disable-shared --disable-doc --without-examples \
     && make -j $(nproc) \
     && make install \
     && ls /usr/local/lib/ \
@@ -61,7 +61,7 @@ RUN curl -sSL https://ftl.pi-hole.net/libraries/termcap-${termcapversion}.tar.gz
 
 RUN curl -sSL https://ftl.pi-hole.net/libraries/readline-${readlineversion}.tar.gz | tar -xz \
     && cd readline-${readlineversion} \
-    && ./configure --enable-static --disable-shared --disable-doc --without-examples \
+    && ./configure --host=armv8-linux-gnueabihf --enable-static --disable-shared --disable-doc --without-examples \
     && make -j $(nproc) \
     && make install-static \
     && ls /usr/local/lib/ \

@@ -28,6 +28,7 @@ jobs:
           - ftl-build_armv5te
           - ftl-build_armv6hf
           - ftl-build_armv7hf
+          - ftl-build_armv8a
           - ftl-build_x86_32
           - ftl-build_x86_64
           - ftl-build_x86_64-musl

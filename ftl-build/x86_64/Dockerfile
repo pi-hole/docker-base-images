@@ -1,4 +1,4 @@
-FROM debian:buster
+FROM debian:stretch
 
 # For FTL test compilation
 ARG CIRCLE_JOB="x86_64"
@@ -70,7 +70,7 @@ RUN curl -sSL https://ftl.pi-hole.net/libraries/readline-${readlineversion}.tar.
 RUN git clone https://github.com/pi-hole/FTL.git \
     && cd FTL \
     && git checkout "${BRANCH}" \
-    && bash .circleci/build-CI.sh "${STATIC}" "${BRANCH}" "${CIRCLE_TAG}" "${CIRCLE_JOB}" \
+    && bash .circleci/build-CI.sh "-DSTATIC=${STATIC}" "${BRANCH}" "${CIRCLE_TAG}" "${CIRCLE_JOB}" \
     && bash test/arch_test.sh \
     && cd .. \
     && rm -r FTL

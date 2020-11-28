@@ -1,4 +1,4 @@
-FROM debian:buster
+FROM debian:stretch
 
 # For FTL test compilation
 ARG CIRCLE_JOB="armv5te"

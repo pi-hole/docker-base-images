@@ -1,4 +1,4 @@
-# Note that this has to stay at stretch as buster removed ARMv4T compliance
+# Note that this has to stay at stretch as stretch removed ARMv4T compliance
 FROM debian:stretch
 
 # For FTL test compilation

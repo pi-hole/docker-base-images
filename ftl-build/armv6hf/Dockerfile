@@ -1,4 +1,4 @@
-# We cannot use stretch here due to libc-incompatibilities (undefined reference to `fcntl64')
+# We cannot use buster here due to glibc version incompatibilities
 FROM debian:stretch
 
 # For FTL test compilation

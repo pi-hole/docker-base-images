@@ -35,6 +35,7 @@ RUN dpkg --add-architecture armel \
         binutils \
         cmake \
         libc6:armel \
+        jq \
     && rm -rf /var/lib/apt/lists/*
     
 # Install ghr for GitHub Releases: https://github.com/tcnksm/ghr

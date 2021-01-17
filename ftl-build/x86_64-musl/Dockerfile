@@ -26,7 +26,8 @@ RUN apk add --no-cache \
         shadow \
         sqlite \
         binutils \
-        cmake
+        cmake \
+        jq
 
 # Install ghr for GitHub Releases: https://github.com/tcnksm/ghr
 RUN curl -sSL https://github.com/tcnksm/ghr/releases/download/v${ghrversion}/ghr_v${ghrversion}_linux_amd64.tar.gz | \

@@ -17,22 +17,23 @@ ARG termcapversion=1.3.1
 RUN dpkg --add-architecture armel \
     && apt-get update \
     && apt-get install -y --no-install-recommends \
-    wget \
-    git \
-    ca-certificates \
-    curl \
-    make \
-    file \
-    netcat-traditional \
-    ssh \
-    sqlite3 \
-    dnsutils \
-    binutils \
-    cmake \
-    nettle-dev:armel \
-    libcap-dev:armel \
-    libgmp-dev:armel \
-    libc6-dev:armel \
+        wget \
+        git \
+        ca-certificates \
+        curl \
+        make \
+        file \
+        netcat-traditional \
+        ssh \
+        sqlite3 \
+        dnsutils \
+        binutils \
+        cmake \
+        nettle-dev:armel \
+        libcap-dev:armel \
+        libgmp-dev:armel \
+        libc6-dev:armel \
+        jq \
     && rm -rf /var/lib/apt/lists/*
 
 # Install ghr for GitHub Releases: https://github.com/tcnksm/ghr

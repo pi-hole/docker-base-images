@@ -33,6 +33,7 @@ RUN dpkg --add-architecture arm64 \
         binutils \
         cmake \
         libc6-dev:arm64 \
+        jq \
     && rm -rf /var/lib/apt/lists/*
 
 # Install ghr for GitHub Releases: https://github.com/tcnksm/ghr

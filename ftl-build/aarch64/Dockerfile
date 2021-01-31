@@ -33,6 +33,7 @@ RUN dpkg --add-architecture arm64 \
         binutils \
         cmake \
         libc6-dev:arm64 \
+        xxd \
         jq \
     && rm -rf /var/lib/apt/lists/*
 

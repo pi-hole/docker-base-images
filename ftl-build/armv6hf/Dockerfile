@@ -33,6 +33,7 @@ RUN dpkg --add-architecture armel \
         libcap-dev:armel \
         libgmp-dev:armel \
         libc6-dev:armel \
+        xxd \
         jq \
     && rm -rf /var/lib/apt/lists/*
 

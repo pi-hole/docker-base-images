@@ -33,6 +33,7 @@ RUN dpkg --add-architecture armel \
         binutils \
         cmake \
         libc6:armel \
+        xxd \
         jq \
     && rm -rf /var/lib/apt/lists/*
     

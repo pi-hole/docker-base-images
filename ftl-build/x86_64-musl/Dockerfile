@@ -27,6 +27,7 @@ RUN apk add --no-cache \
         sqlite \
         binutils \
         cmake \
+        xxd \
         jq
 
 # Install ghr for GitHub Releases: https://github.com/tcnksm/ghr

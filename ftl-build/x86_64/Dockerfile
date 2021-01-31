@@ -31,6 +31,7 @@ RUN apt-get update \
         wget \
         binutils \
         cmake \
+        xxd \
         jq \
     && rm -rf /var/lib/apt/lists/*
 

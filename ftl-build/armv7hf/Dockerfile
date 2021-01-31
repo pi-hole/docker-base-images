@@ -33,6 +33,7 @@ RUN dpkg --add-architecture armhf \
         binutils \
         cmake \
         libc6:armhf \
+        xxd \
         jq \
     && rm -rf /var/lib/apt/lists/*
     

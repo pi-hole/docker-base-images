@@ -33,6 +33,8 @@ RUN dpkg --add-architecture armhf \
         binutils \
         cmake \
         libc6:armhf \
+        xxd \
+        jq \
     && rm -rf /var/lib/apt/lists/*
     
 # Install ghr for GitHub Releases: https://github.com/tcnksm/ghr

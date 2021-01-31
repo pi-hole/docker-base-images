@@ -33,6 +33,8 @@ RUN dpkg --add-architecture i386 \
         binutils \
         cmake \
         libc6:i386 \
+        xxd \
+        jq \
     && rm -rf /var/lib/apt/lists/*
 
 # Install ghr for GitHub Releases: https://github.com/tcnksm/ghr

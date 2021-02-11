@@ -15,6 +15,13 @@ services:
       args:
         DEBIAN_VERSION: buster
 
+  debian-base-bullseye:
+    image: pihole/debian-base:bullseye
+    build:
+      context: debian-base
+      args:
+        DEBIAN_VERSION: bullseye
+
   web-build:
     image: pihole/web-build:latest
     build:

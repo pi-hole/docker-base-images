@@ -15,8 +15,9 @@ function main() {
   # Push debian tags
   if [[ "${target:0:11}" = "debian-base" ]]; then
     flavor=${target:12:$$}
-    # TODO set buster as the primary version for `latest` and tag-based builds
-    primary_debian_version="stretch"
+    # Since this is a 'based images' repo, does it make sense to even provide
+    # a 'default' version? Perhaps all versions should be debian specific?
+    primary_debian_version="buster"
     branch_based_tag=$(build_branch_tag "${current_branch}")
     flavored_git_tag_based_tag=$(build_flavored_git_tag_tag "${flavor}" "${current_git_tag}")
     flavored_branch_name=$(build_flavored_branch_name "${current_branch}" "${flavor}")

@@ -22,6 +22,7 @@ jobs:
         TARGET:
           - debian-base-stretch
           - debian-base-buster
+          - debian-base-bullseye
           - web-build
           - ftl-build_aarch64
           - ftl-build_armv4t

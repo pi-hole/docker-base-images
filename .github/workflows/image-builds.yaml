@@ -9,6 +9,7 @@ on:
       - dev
     tags:
       - '**'
+  workflow_dispatch:
   schedule:
     # 2:30am UTC every Sunday, has no particular significance
     - cron: '30 2 * * 0'

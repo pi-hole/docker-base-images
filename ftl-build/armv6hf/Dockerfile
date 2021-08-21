@@ -52,9 +52,9 @@ RUN mkdir rpi_tools && cd rpi_tools && git init && git remote add origin https:/
     cp -a arm-bcm2708/arm-rpi-4.9.3-linux-gnueabihf/* /usr/ && rm -rf ../rpi_tools
 
 # Download procompiled armv6 libraries
-RUN wget ftl.pi-hole.net/libraries/libgmp.a -O /usr/local/lib/libgmp.a && \
-    wget ftl.pi-hole.net/libraries/libnettle.a -O /usr/local/lib/libnettle.a && \
-    wget ftl.pi-hole.net/libraries/libhogweed.a -O /usr/local/lib/libhogweed.a
+RUN wget https://ftl.pi-hole.net/libraries/libgmp.a -O /usr/local/lib/libgmp.a && \
+    wget https://ftl.pi-hole.net/libraries/libnettle.a -O /usr/local/lib/libnettle.a && \
+    wget https://ftl.pi-hole.net/libraries/libhogweed.a -O /usr/local/lib/libhogweed.a
 
 # We use the libnettle and libidn headers from the armel packages, however, we
 # use the armv6 compatible libraries we built on a Raspberry Pi Zero and

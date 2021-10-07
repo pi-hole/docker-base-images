@@ -19,7 +19,6 @@ RUN apt-get update \
         dnsutils \
         file \
         gcc \
-        git \
         libcap2-bin \
         libcap-dev \
         libc-dev \
@@ -34,6 +33,11 @@ RUN apt-get update \
         xxd \
         jq \
     && rm -rf /var/lib/apt/lists/*
+
+# Github actions/Checkout@v2 requires git >=2.18 else it will fall back to github API to download tarball
+RUN echo "deb http://deb.debian.org/debian stretch-backports main contrib non-free" >> /etc/apt/sources.list; \
+    apt-get update; \
+    apt-get -t stretch-backports install git -y
 
 # Install ghr for GitHub Releases: https://github.com/tcnksm/ghr
 RUN curl -sSL https://github.com/tcnksm/ghr/releases/download/v${ghrversion}/ghr_v${ghrversion}_linux_amd64.tar.gz | \

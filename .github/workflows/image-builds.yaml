@@ -15,13 +15,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        TARGET: [stretch,buster,bullseye]
-        # TARGET:
-        #   - debian-base-stretch
-        #   - debian-base-buster
-        #   - debian-base-bullseye
-    env:
-      TARGET: ${{matrix.TARGET}}
+        TARGET: [stretch,buster,bullseye]    
     steps:
       -
         name: Checkout Repo
@@ -62,6 +56,8 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           context: debian-base/.
+          build-args: |
+            TARGET=${{ matrix.TARGET }}
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

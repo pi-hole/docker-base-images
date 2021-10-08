@@ -24,15 +24,6 @@ jobs:
           - debian-base-stretch
           - debian-base-buster
           - debian-base-bullseye
-          - ftl-build_aarch64
-          - ftl-build_armv4t
-          - ftl-build_armv5te
-          - ftl-build_armv6hf
-          - ftl-build_armv7hf
-          - ftl-build_armv8a
-          - ftl-build_x86_32
-          - ftl-build_x86_64
-          - ftl-build_x86_64-musl
     env:
       TARGET: ${{matrix.TARGET}}
     steps:
@@ -47,3 +38,4 @@ jobs:
         run: |
           docker login --username=${{ secrets.DOCKERHUB_USER }} --password=${{ secrets.DOCKERHUB_PASS }}
           ./tag-and-push.sh ${TARGET}
+

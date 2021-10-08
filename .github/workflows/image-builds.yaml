@@ -1,4 +1,4 @@
-name: Image Builds
+name: debian-base builds
 on:
   pull_request:
   push:
@@ -15,7 +15,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        TARGET: [stretch,buster,bullseye]    
+        DEBIAN_VERSION: [stretch,buster,bullseye]
     steps:
       -
         name: Checkout Repo
@@ -34,10 +34,10 @@ jobs:
           flavor: |
             latest=false
           tags: |
-            type=ref,event=tag,suffix=-${{ matrix.TARGET }}
-            type=ref,event=branch,suffix=-${{ matrix.TARGET }},enable=${{ github.event_name != 'schedule' }}
-            type=ref,event=pr,suffix=-${{ matrix.TARGET }}
-            type=raw,value=${{matrix.TARGET}},enable=${{ startsWith(github.ref, 'refs/tags/') || github.event_name == 'schedule' }}
+            type=ref,event=tag,suffix=-${{ matrix.DEBIAN_VERSION }}
+            type=ref,event=branch,suffix=-${{ matrix.DEBIAN_VERSION }},enable=${{ github.event_name != 'schedule' }}
+            type=ref,event=pr,suffix=-${{ matrix.DEBIAN_VERSION }}
+            type=raw,value=${{matrix.DEBIAN_VERSION}},enable=${{ startsWith(github.ref, 'refs/tags/') || github.event_name == 'schedule' }}
       -
         name: Login to DockerHub
         uses: docker/login-action@v1
@@ -57,24 +57,9 @@ jobs:
         with:
           context: debian-base/.
           build-args: |
-            DEBIAN_VERSION=${{ matrix.TARGET }}
+            DEBIAN_VERSION=${{ matrix.DEBIAN_VERSION }}
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha,scope=${{ matrix.TARGET }}
-          cache-to: type=gha,scope=${{ matrix.TARGET }},mode=max
-
-
-
-
-
-      # - name: Build Images
-      #   run: |
-      #     echo "Building ${TARGET}"
-      #     docker-compose build --pull ${TARGET}
-      # - name: Tag and push all images
-      #   if: github.event_name != 'pull_request'
-      #   run: |
-      #     docker login --username=${{ secrets.DOCKERHUB_USER }} --password=${{ secrets.DOCKERHUB_PASS }}
-      #     ./tag-and-push.sh ${TARGET}
-
+          cache-from: type=gha,scope=${{ matrix.DEBIAN_VERSION }}
+          cache-to: type=gha,scope=${{ matrix.DEBIAN_VERSION }},mode=max

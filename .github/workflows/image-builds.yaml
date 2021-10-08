@@ -2,11 +2,6 @@ name: Image Builds
 on:
   pull_request:
   push:
-    branches:
-      - master
-      # add any branch names here that should build on push.
-      # the branch name will be included in the resulting docker tag.
-      - dev
     tags:
       - "**"
   workflow_dispatch:
@@ -20,22 +15,70 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        TARGET:
-          - debian-base-stretch
-          - debian-base-buster
-          - debian-base-bullseye
+        TARGET: [stretch,buster,bullseye]
+        # TARGET:
+        #   - debian-base-stretch
+        #   - debian-base-buster
+        #   - debian-base-bullseye
     env:
       TARGET: ${{matrix.TARGET}}
     steps:
-      - name: Checkout Repo
+      -
+        name: Checkout Repo
         uses: actions/checkout@v2
-      - name: Build Images
-        run: |
-          echo "Building ${TARGET}"
-          docker-compose build --pull ${TARGET}
-      - name: Tag and push all images
-        if: github.event_name != 'pull_request'
-        run: |
-          docker login --username=${{ secrets.DOCKERHUB_USER }} --password=${{ secrets.DOCKERHUB_PASS }}
-          ./tag-and-push.sh ${TARGET}
+      -
+        name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+      -
+        name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v3
+        with:
+          images: |
+            ${{ secrets.DOCKERHUB_NAMESPACE }}/debian-base
+            ghcr.io/${{ github.repository_owner }}/debian-base
+          flavor: |
+            latest=false
+          tags: |
+            type=ref,event=tag,suffix=-${{ matrix.TARGET }}
+            type=ref,event=branch,suffix=-${{ matrix.TARGET }},enable=${{ github.event_name != 'schedule' }}
+            type=ref,event=pr,suffix=-${{ matrix.TARGET }}
+            type=raw,value=${{matrix.TARGET}},enable=${{ startsWith(github.ref, 'refs/tags/') || github.event_name == 'schedule' }}
+      -
+        name: Login to DockerHub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKERHUB_USER }}
+          password: ${{ secrets.DOCKERHUB_PASS }}
+      -
+        name: Login to GitHub Container Registry
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      -
+        name: Build and push
+        uses: docker/build-push-action@v2
+        with:
+          context: debian-base/.
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=${{ matrix.TARGET }}
+          cache-to: type=gha,scope=${{ matrix.TARGET }},mode=max
+
+
+
+
+
+      # - name: Build Images
+      #   run: |
+      #     echo "Building ${TARGET}"
+      #     docker-compose build --pull ${TARGET}
+      # - name: Tag and push all images
+      #   if: github.event_name != 'pull_request'
+      #   run: |
+      #     docker login --username=${{ secrets.DOCKERHUB_USER }} --password=${{ secrets.DOCKERHUB_PASS }}
+      #     ./tag-and-push.sh ${TARGET}
 

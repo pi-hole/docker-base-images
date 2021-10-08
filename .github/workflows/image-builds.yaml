@@ -32,7 +32,7 @@ jobs:
             ${{ secrets.DOCKERHUB_NAMESPACE }}/debian-base
             ghcr.io/${{ github.repository_owner }}/debian-base
           flavor: |
-            latest==${{ matrix.DEBIAN_VERSION == 'buster' && ( startsWith(github.ref, 'refs/tags/') || github.event_name == 'schedule' ) }}
+            latest=${{ matrix.DEBIAN_VERSION == 'buster' && ( startsWith(github.ref, 'refs/tags/') || github.event_name == 'schedule' ) }}
           tags: |
             type=ref,event=tag,suffix=-${{ matrix.DEBIAN_VERSION }}
             type=ref,event=branch,suffix=-${{ matrix.DEBIAN_VERSION }},enable=${{ github.event_name != 'schedule' }}

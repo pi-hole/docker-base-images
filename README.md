@@ -9,6 +9,7 @@ The pihole/docker-pi-hole aka docker image `pihole/pihole` uses this for x86 arc
 
 Tag Patterns:
 
+- `latest` tag: This is always the most recently tagged / scheduled build of `buster`
 - Debian flavour tags: `stretch`, `buster`, `bullseye`. These are always the latest builds for the given flavour.
 - Version tags with Debian flavour, such as `v1.1-buster`. Version tags are for a specific release of Dockerfile, however there are still regular builds to pull in changes from the base Debian layers, such as security updates.
 - Branch based tags. These are always in sync with the branch matching the tag name and should only be used for testing and development purposes.

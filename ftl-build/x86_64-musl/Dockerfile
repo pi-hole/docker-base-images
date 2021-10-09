@@ -1,4 +1,5 @@
-FROM alpine:3.12
+ARG ALPINE_VER=3.14
+FROM alpine:${ALPINE_VER}
 
 # For FTL test compilation
 ARG CIRCLE_JOB="x86_64-musl"
@@ -30,6 +31,14 @@ RUN apk add --no-cache \
         xxd \
         jq
 
+# Install pdns from community repo
+RUN echo "@community http://dl-cdn.alpinelinux.org/alpine/v${ALPINE_VER}/community" >> /etc/apk/repositories; \
+    apk update; \
+    apk add --no-cache \
+    pdns \
+    pdns-backend-sqlite3 \
+    pdns-recursor
+
 # Install ghr for GitHub Releases: https://github.com/tcnksm/ghr
 RUN curl -sSL https://github.com/tcnksm/ghr/releases/download/v${ghrversion}/ghr_v${ghrversion}_linux_amd64.tar.gz | \
     tar --strip-components=1 -C /usr/bin/ -xz \
@@ -40,7 +49,7 @@ ENV STATIC true
 
 RUN curl -sSL https://ftl.pi-hole.net/libraries/libidn-${idnversion}.tar.gz | tar -xz \
     && cd libidn-${idnversion} \
-    && ./configure --host=armv7-linux-gnueabi --enable-static --disable-shared --disable-doc --without-examples \
+    && ./configure --enable-static --disable-shared --disable-doc --without-examples \
     && make -j $(nproc) install \
     && cd .. \
     && rm -r libidn-${idnversion}

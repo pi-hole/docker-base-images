@@ -1,4 +1,5 @@
-FROM alpine:3.12
+ARG ALPINE_VER=3.14
+FROM alpine:${ALPINE_VER}
 
 # For FTL test compilation
 ARG CIRCLE_JOB="x86_64-musl"
@@ -31,7 +32,7 @@ RUN apk add --no-cache \
         jq
 
 # Install pdns from community repo
-RUN echo "@community http://dl-cdn.alpinelinux.org/alpine/v3.12/community" >> /etc/apk/repositories; \
+RUN echo "@community http://dl-cdn.alpinelinux.org/alpine/v${ALPINE_VER}/community" >> /etc/apk/repositories; \
     apk update; \
     apk add --no-cache \
     pdns \

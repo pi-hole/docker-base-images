@@ -19,8 +19,8 @@ Tag Patterns:
 - GitHub Actions (`debian-base.yml`):
   - Every `pull_request` event triggers a build (but does not push)
   - Every `workflow_dispatch` event triggers a build of the branch it is run against, and uploads a branch-based tag
-  - Every `tag` event (e.g `v1`) triggers a build and uploads both `${{ matrix.DEBIAN_VERSION }}` and `v1-${{ matrix.DEBIAN_VERSION }}` tags
-  - Schedule: 2:30am UTC every Sunday a build is triggered and a `${{ matrix.DEBIAN_VERSION }}` tag is uploaded
+  - Every `tag` event (e.g `v1`) triggers a build and uploads both `${{matrix.DEBIAN_VERSION}}` and `v1-${{matrix.DEBIAN_VERSION}}` tags
+  - Schedule: 2:30am UTC every Sunday a build is triggered and a `${{matrix.DEBIAN_VERSION}}` tag is uploaded
 
 ---
 # FTL Images [![Docker Pulls](https://img.shields.io/docker/pulls/pihole/ftl-build)](https://hub.docker.com/r/pihole/ftl-build) [![Image Builds](https://github.com/pi-hole/docker-base-images/actions/workflows/ftl-build.yml/badge.svg)](https://github.com/pi-hole/docker-base-images/actions/workflows/ftl-build.yml)
@@ -39,6 +39,6 @@ All images are pushed to both Docker Hub (`pihole/ftl-build`) and GHCR (`ghcr.io
 - GitHub Actions (`ftl-build.yml`):
   - Every `pull_request` event triggers a build (but does not push)
   - Every `workflow_dispatch` event triggers a build of the branch it is run against, and uploads a branch-based tag
-  - Every `tag` event (e.g `v1`) triggers a build and uploads both `${{ matrix.ARCH }}` and `v1-${{ matrix.ARCH }}` tags
-  - Schedule: 1:30am UTC every Sunday a build is triggered and a `${{ matrix.ARCH }}` tag is uploaded
+  - Every `tag` event (e.g `v1`) triggers a build and uploads both `${{matrix.ARCH}}` and `v1-${{matrix.ARCH}}` tags
+  - Schedule: 1:30am UTC every Sunday a build is triggered and a `${{matrix.ARCH}}` tag is uploaded
 

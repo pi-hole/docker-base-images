@@ -30,6 +30,14 @@ RUN apk add --no-cache \
         xxd \
         jq
 
+# Install pdns from community repo
+RUN echo "@community http://dl-cdn.alpinelinux.org/alpine/v3.12/community" >> /etc/apk/repositories; \
+    apk update; \
+    apk add --no-cache \
+    pdns \
+    pdns-backend-sqlite3 \
+    pdns-recursor
+
 # Install ghr for GitHub Releases: https://github.com/tcnksm/ghr
 RUN curl -sSL https://github.com/tcnksm/ghr/releases/download/v${ghrversion}/ghr_v${ghrversion}_linux_amd64.tar.gz | \
     tar --strip-components=1 -C /usr/bin/ -xz \

@@ -35,6 +35,7 @@ RUN dpkg --add-architecture i386 \
         xxd \
         jq \
         gnupg \
+        psmisc \
     && rm -rf /var/lib/apt/lists/*
 
 # Pin powerdns repo in APT to get pdns-recursor

@@ -32,19 +32,31 @@ RUN apt-get update \
         cmake \
         xxd \
         jq \
-        pdns-server \
-        pdns-backend-sqlite3 \
         gnupg \
+        psmisc \
     && rm -rf /var/lib/apt/lists/*
 
 # Pin powerdns repo in APT to get pdns-recursor
-RUN echo "deb [arch=amd64] http://repo.powerdns.com/debian stretch-rec-master main" >> /etc/apt/sources.list.d/pdns.list; \
+RUN echo "deb [arch=amd64] http://repo.powerdns.com/debian stretch-auth-44 main" >> /etc/apt/sources.list.d/pdns.list; \
     echo "Package: pdns-*" > /etc/apt/preferences.d/pdns; \
     echo "Pin: origin repo.powerdns.com" >> /etc/apt/preferences.d/pdns; \
     echo "Pin-Priority: 600" >> /etc/apt/preferences.d/pdns; \
-    curl https://repo.powerdns.com/CBC8B383-pub.asc | apt-key add - ; \
+    curl https://repo.powerdns.com/FD380FBB-pub.asc | apt-key add - ; \
+    apt-get update; \
+    apt-get install pdns-server -y;
+
+# Pin powerdns repo in APT to get pdns-recursor
+RUN echo "deb [arch=amd64] http://repo.powerdns.com/debian stretch-rec-44 main" >> /etc/apt/sources.list.d/pdns.list; \
+    echo "Package: pdns-*" > /etc/apt/preferences.d/pdns; \
+    echo "Pin: origin repo.powerdns.com" >> /etc/apt/preferences.d/pdns; \
+    echo "Pin-Priority: 600" >> /etc/apt/preferences.d/pdns; \
+    curl https://repo.powerdns.com/FD380FBB-pub.asc | apt-key add - ; \
     apt-get update; \
     apt-get install pdns-recursor -y;
+
+# Wget the pdns-backend-sqlite3.deb and install it
+RUN wget https://repo.powerdns.com/debian/pool/main/p/pdns/pdns-backend-sqlite3_4.4.1-1pdns.stretch_amd64.deb; \
+    dpkg -i pdns-backend-sqlite3_4.4.1-1pdns.stretch_amd64.deb
 
 # Github actions/Checkout@v2 requires git >=2.18 else it will fall back to github API to download tarball
 RUN echo "deb http://deb.debian.org/debian stretch-backports main contrib non-free" >> /etc/apt/sources.list; \

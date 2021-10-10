@@ -37,7 +37,8 @@ RUN echo "@community http://dl-cdn.alpinelinux.org/alpine/v${ALPINE_VER}/communi
     apk add --no-cache \
     pdns \
     pdns-backend-sqlite3 \
-    pdns-recursor
+    pdns-recursor \
+    pdns-doc
 
 # Install ghr for GitHub Releases: https://github.com/tcnksm/ghr
 RUN curl -sSL https://github.com/tcnksm/ghr/releases/download/v${ghrversion}/ghr_v${ghrversion}_linux_amd64.tar.gz | \

@@ -6,9 +6,6 @@ ARG CIRCLE_JOB="armv6hf"
 ARG CIRCLE_TAG="test-build"
 ARG BRANCH="special/CI_development"
 
-# ghr 0.13.0 2019-09-16
-ARG ghrversion=0.13.0
-
 ARG idnversion=1.36
 ARG readlineversion=8.0
 ARG termcapversion=1.3.1
@@ -40,11 +37,6 @@ RUN dpkg --add-architecture armel \
 RUN echo "deb http://deb.debian.org/debian stretch-backports main contrib non-free" >> /etc/apt/sources.list; \
     apt-get update; \
     apt-get -t stretch-backports install git -y
-
-# Install ghr for GitHub Releases: https://github.com/tcnksm/ghr
-RUN curl -sSL https://github.com/tcnksm/ghr/releases/download/v${ghrversion}/ghr_v${ghrversion}_linux_amd64.tar.gz | \
-    tar --strip-components=1 -C /usr/bin/ -xz \
-    ghr_v${ghrversion}_linux_amd64/ghr
 
 # Use Raspbian's GCC
 # This command was taken from https://github.com/dockcross/dockcross/blob/master/linux-armv6/Dockerfile

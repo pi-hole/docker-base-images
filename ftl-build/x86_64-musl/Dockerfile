@@ -6,9 +6,6 @@ ARG CIRCLE_JOB="x86_64-musl"
 ARG CIRCLE_TAG="test-build"
 ARG BRANCH="special/CI_development"
 
-# ghr 0.13.0 2019-09-16
-ARG ghrversion=0.13.0
-
 ARG idnversion=1.36
 ARG readlineversion=8.0
 ARG termcapversion=1.3.1
@@ -39,11 +36,6 @@ RUN echo "@community http://dl-cdn.alpinelinux.org/alpine/v${ALPINE_VER}/communi
     pdns-backend-sqlite3 \
     pdns-recursor \
     pdns-doc
-
-# Install ghr for GitHub Releases: https://github.com/tcnksm/ghr
-RUN curl -sSL https://github.com/tcnksm/ghr/releases/download/v${ghrversion}/ghr_v${ghrversion}_linux_amd64.tar.gz | \
-    tar --strip-components=1 -C /usr/bin/ -xz \
-    ghr_v${ghrversion}_linux_amd64/ghr
 
 ENV CC gcc
 ENV STATIC true

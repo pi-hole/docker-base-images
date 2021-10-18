@@ -74,12 +74,14 @@ RUN curl -sSL https://ftl.pi-hole.net/libraries/readline-${readlineversion}.tar.
     && rm -r readline-${readlineversion}
 
 # Test compile FTL's development branch, the result is removed from the final container
-# We accept errors in the test step to be able to update the arch_tests if a change is intended
+# We accept errors in the arwch_test step to be able to update the arch_tests if a change is intended
+# Run the full test suite to ensure that the container is still capable of running the tests
 RUN git clone https://github.com/pi-hole/FTL.git \
     && cd FTL \
     && git checkout "${BRANCH}" \
     && bash .circleci/build-CI.sh "-DSTATIC=${STATIC}" "${BRANCH}" "${CIRCLE_TAG}" "${CIRCLE_JOB}" \
     && bash test/arch_test.sh \
+    && bash test/run.sh \
     && readelf -l ./pihole-FTL \
     && cd .. \
     && rm -r FTL

@@ -13,7 +13,6 @@ RUN dpkg --add-architecture arm64 \
     && apt-get install --no-install-recommends -y \
         ca-certificates \
         curl \
-        dnsutils \
         file \
         gcc-aarch64-linux-gnu \
         git \
@@ -35,9 +34,12 @@ RUN dpkg --add-architecture arm64 \
     && rm -rf /var/lib/apt/lists/*
 
 # Github actions/Checkout@v2 requires git >=2.18 else it will fall back to github API to download tarball
-RUN echo "deb http://deb.debian.org/debian stretch-backports main contrib non-free" >> /etc/apt/sources.list; \
-    apt-get update; \
-    apt-get -t stretch-backports install git -y
+# stretch-backports also has dnsutils 9.11.5, which has support for +unknown (See https://github.com/pi-hole/FTL/pull/1223#discussion_r731148277)
+RUN echo "deb http://deb.debian.org/debian stretch-backports main contrib non-free" >> /etc/apt/sources.list \
+    && apt-get update \
+    && apt-get -t stretch-backports install --no-install-recommends -y \
+        git \
+        dnsutils
 
 ENV CC aarch64-linux-gnu-gcc -isystem /usr/local/include
 

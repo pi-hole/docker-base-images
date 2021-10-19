@@ -14,7 +14,6 @@ RUN dpkg --add-architecture i386 \
     && apt-get install --no-install-recommends -y \
         ca-certificates \
         curl \
-        dnsutils \
         file \
         gcc \
         gcc-multilib \
@@ -58,9 +57,12 @@ RUN wget https://repo.powerdns.com/debian/pool/main/p/pdns/pdns-backend-sqlite3_
     dpkg -i pdns-backend-sqlite3_4.4.1-1pdns.stretch_amd64.deb
 
 # Github actions/Checkout@v2 requires git >=2.18 else it will fall back to github API to download tarball
-RUN echo "deb http://deb.debian.org/debian stretch-backports main contrib non-free" >> /etc/apt/sources.list; \
-    apt-get update; \
-    apt-get -t stretch-backports install git -y
+# stretch-backports also has dnsutils 9.11.5, which has support for +unknown (See https://github.com/pi-hole/FTL/pull/1223#discussion_r731148277)
+RUN echo "deb http://deb.debian.org/debian stretch-backports main contrib non-free" >> /etc/apt/sources.list \
+    && apt-get update \
+    && apt-get -t stretch-backports install --no-install-recommends -y \
+        git \
+        dnsutils
 
 ENV CC "gcc -m32"
 RUN ln -s /usr/lib32/libm.so /usr/local/lib/

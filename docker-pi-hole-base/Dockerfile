@@ -1,4 +1,7 @@
-FROM debian:buster-slim
+ARG DEBIAN_VERSION
+FROM debian:${DEBIAN_VERSION}
+
+ENV phpver="php"
 
 RUN apt-get update \
     && apt-get install --no-install-recommends -y \
@@ -20,10 +23,10 @@ RUN apt-get update \
         dns-root-data \
         libcap2 \
         lighttpd \
-        php7.3-common \
-        php7.3-cgi \
-        php7.3-sqlite3 \
-        php7.3-xml \
-        php7.3-intl \
-        php7.3-json \
+        php-common \
+        php-cgi \
+        php-sqlite3 \
+        php-xml \
+        php-intl \
+        php-json \
     && rm -rf /var/lib/apt/lists/*

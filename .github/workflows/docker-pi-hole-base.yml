@@ -1,11 +1,11 @@
-name: docker-pi-hole-base-buster build
+name: docker-pi-hole-base build
 on:
   pull_request:
   push:
     branches:
       - "master"
     paths:
-      - 'docker-pi-hole-base-buster/**'
+      - 'docker-pi-hole-base/**'
   workflow_dispatch:
   schedule:
     # 1:30am UTC every Sunday, has no particular significance
@@ -14,6 +14,10 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        DEBIAN_VERSION: [buster-slim, bullseye-slim]
     steps:
       -
         name: Checkout Repo
@@ -27,10 +31,10 @@ jobs:
         uses: docker/metadata-action@v3
         with:
           images: |
-            ${{ secrets.DOCKERHUB_NAMESPACE }}/docker-pi-hole-base-buster
-            ghcr.io/${{ github.repository_owner }}/docker-pi-hole-base-buster
+            ${{ secrets.DOCKERHUB_NAMESPACE }}/docker-pi-hole-base
+            ghcr.io/${{ github.repository_owner }}/docker-pi-hole-base
           tags: |
-            latest
+            ${{ matrix.DEBIAN_VERSION }}
       -
         name: Login to DockerHub
         uses: docker/login-action@v1
@@ -50,6 +54,8 @@ jobs:
         with:
           context: docker-pi-hole-base/.
           platforms: linux/amd64, linux/arm64, linux/386, linux/arm/v7, linux/arm/v6, linux/ppc64le
+          build-args: |
+            DEBIAN_VERSION=${{ matrix.DEBIAN_VERSION }}
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

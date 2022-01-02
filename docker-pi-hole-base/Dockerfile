@@ -29,4 +29,5 @@ RUN apt-get update \
         php-xml \
         php-intl \
         php-json \
+        netcat \
     && rm -rf /var/lib/apt/lists/*

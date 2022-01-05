@@ -13,7 +13,6 @@ RUN apt-get update \
         cron \
         curl \
         iputils-ping \
-        lsof \
         psmisc \
         sudo \
         unzip \

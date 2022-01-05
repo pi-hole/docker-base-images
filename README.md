@@ -23,7 +23,7 @@ All images are pushed to both Docker Hub (`pihole/ftl-build`) and GHCR (`ghcr.io
 
 # Docker Pi-hole Base Images [![Docker Pulls](https://img.shields.io/docker/pulls/pihole/docker-pi-hole-base)](https://hub.docker.com/r/pihole/docker-pi-hole-base) [![Image Builds](https://github.com/pi-hole/docker-base-images/actions/workflows/docker-pi-hole-base.yml/badge.svg)](https://github.com/pi-hole/docker-base-images/actions/workflows/docker-pi-hole-base.yml)
 
-All the images used by the pihole/FTL repo to build the contents of that repo
+All the images used by the pihole/docker-pi-hole repo to build the contents of that repo
 
 Tag Patterns:
  - Multiarch Debian Version tags, such as `buster-slim` and `bullseye-slim`. These are always the latest builds for the given debian version

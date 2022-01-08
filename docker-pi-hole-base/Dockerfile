@@ -28,5 +28,5 @@ RUN apt-get update \
         php-xml \
         php-intl \
         php-json \
-        netcat \
+        netcat-openbsd \
     && rm -rf /var/lib/apt/lists/*

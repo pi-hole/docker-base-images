@@ -5,6 +5,9 @@ ENV phpver="php"
 
 RUN apt-get update \
     && apt-get install --no-install-recommends -y \
+        # Packages Specific to Docker:
+        procps \
+        # Dependencies expected by Pi-hole installer:
         grep \
         dnsutils \
         git \
@@ -28,5 +31,5 @@ RUN apt-get update \
         php-xml \
         php-intl \
         php-json \
-        netcat-openbsd \
+        netcat-openbsd \        
     && rm -rf /var/lib/apt/lists/*

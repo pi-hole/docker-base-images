@@ -8,28 +8,28 @@ RUN apt-get update \
         # Packages Specific to Docker:
         procps \
         # Dependencies expected by Pi-hole installer:
-        grep \
-        dnsutils \
-        git \
-        iproute2 \
         ca-certificates \
         cron \
         curl \
+        dnsutils \
+        dns-root-data \
+        git \
+        grep \
+        idn2 \
+        iproute2 \
         iputils-ping \
+        libcap2 \
+        libcap2-bin \
+        lighttpd \
+        netcat-openbsd \        
         psmisc \
+        sqlite3 \
         sudo \
         unzip \
-        idn2 \
-        sqlite3 \
-        libcap2-bin \
-        dns-root-data \
-        libcap2 \
-        lighttpd \
-        php-common \
         php-cgi \
-        php-sqlite3 \
-        php-xml \
+        php-common \
         php-intl \
         php-json \
-        netcat-openbsd \        
+        php-sqlite3 \
+        php-xml \
     && rm -rf /var/lib/apt/lists/*

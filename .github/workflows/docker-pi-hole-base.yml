@@ -1,6 +1,9 @@
 name: docker-pi-hole-base build
 on:
   pull_request:
+    paths:
+      - 'docker-pi-hole-base/**'
+      - '.github/workflows/docker-pi-hole-base.yml'
   push:
     branches:
       - "master"

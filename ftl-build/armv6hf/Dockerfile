@@ -2,9 +2,9 @@
 FROM debian:stretch
 
 # For FTL test compilation
-ARG CIRCLE_JOB="armv6hf"
-ARG CIRCLE_TAG="test-build"
-ARG BRANCH="special/CI_development"
+ARG CI_ARCH="armv6hf"
+ARG GIT_TAG="test-build"
+ARG GIT_BRANCH="special/CI_development"
 
 ARG idnversion=1.36
 ARG readlineversion=8.0
@@ -88,8 +88,8 @@ RUN curl -sSL https://ftl.pi-hole.net/libraries/readline-${readlineversion}.tar.
 # We accept errors in the test step to be able to update the arch_tests if a change is intended
 RUN git clone https://github.com/pi-hole/FTL.git \
     && cd FTL \
-    && git checkout "${BRANCH}" \
-    && bash .circleci/build-CI.sh "-DSTATIC=${STATIC}" "${BRANCH}" "${CIRCLE_TAG}" "${CIRCLE_JOB}" \
+    && git checkout "${GIT_BRANCH}" \
+    && bash build.sh "-DSTATIC=${STATIC}" \
     && bash test/arch_test.sh \
     && cd .. \
     && rm -r FTL

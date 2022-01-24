@@ -1,6 +1,8 @@
 name: ftl-build builds
 on:
   pull_request:
+    paths:
+      - 'ftl-build/**'
   push:
     tags:
       - "**"

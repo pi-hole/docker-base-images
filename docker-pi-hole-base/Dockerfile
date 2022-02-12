@@ -1,4 +1,5 @@
 ARG DEBIAN_VERSION
+ENV DEBIAN_VERSION=${DEBIAN_VERSION}
 FROM debian:${DEBIAN_VERSION}
 
 ENV phpver="php"
@@ -31,5 +32,9 @@ RUN apt-get update \
         php-xml \
         php-intl \
         php-json \
-        netcat-openbsd \        
+        netcat-openbsd \
     && rm -rf /var/lib/apt/lists/*
+
+# curl in armhf-buster's image has SSL issues. Running c_rehash fixes it.
+# https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=923479
+RUN [ "${DEBIAN_VERSION}" == "buster-slim" ] && c_rehash

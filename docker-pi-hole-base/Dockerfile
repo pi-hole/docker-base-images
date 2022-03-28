@@ -33,6 +33,7 @@ RUN apt-get update \
         php-intl \
         php-json \
         netcat-openbsd \
+        lighttpd-mod-openssl \
     && rm -rf /var/lib/apt/lists/*
 
 # curl in armhf-buster's image has SSL issues. Running c_rehash fixes it.

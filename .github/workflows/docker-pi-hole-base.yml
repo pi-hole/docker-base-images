@@ -21,7 +21,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        DEBIAN_VERSION: [bullseye-slim, buster-slim]
+        DEBIAN_VERSION: [bullseye-slim]
     steps:
       -
         name: Checkout Repo

@@ -10,7 +10,8 @@ ARG idnversion=1.36
 ARG readlineversion=8.0
 ARG termcapversion=1.3.1
 
-RUN apk add --no-cache \
+RUN [ "${ALPINE_VER}" != 'latest' ] && ALPINE_VER="v${ALPINE_VER}";\
+    apk add --no-cache \
     alpine-sdk \
     bash \
     bind-tools \

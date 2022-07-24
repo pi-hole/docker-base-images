@@ -53,8 +53,8 @@ RUN echo "deb [arch=amd64] http://repo.powerdns.com/debian stretch-rec-44 main" 
     apt-get install pdns-recursor -y;
 
 # Wget the pdns-backend-sqlite3.deb and install it
-RUN wget https://repo.powerdns.com/debian/pool/main/p/pdns/pdns-backend-sqlite3_4.4.1-1pdns.stretch_amd64.deb; \
-    dpkg -i pdns-backend-sqlite3_4.4.1-1pdns.stretch_amd64.deb
+RUN wget https://repo.powerdns.com/debian/pool/main/p/pdns/pdns-backend-sqlite3_4.4.3-1pdns.stretch_amd64.deb; \
+    dpkg -i pdns-backend-sqlite3_4.4.3-1pdns.stretch_amd64.deb
 
 # Github actions/Checkout@v2 requires git >=2.18 else it will fall back to github API to download tarball
 # stretch-backports also has dnsutils 9.11.5, which has support for +unknown (See https://github.com/pi-hole/FTL/pull/1223#discussion_r731148277)

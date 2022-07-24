@@ -32,12 +32,7 @@ RUN [ "${ALPINE_VER}" != 'latest' ] && ALPINE_VER="v${ALPINE_VER}";\
 
 # Install pdns from community repo
 RUN echo "@community http://dl-cdn.alpinelinux.org/alpine/${ALPINE_VER}/community" >> /etc/apk/repositories; \
-    apk update; \
-    apk add --no-cache \
-    pdns \
-    pdns-backend-sqlite3 \
-    pdns-recursor \
-    pdns-doc
+    apk update
 
 ENV CC gcc
 ENV STATIC true

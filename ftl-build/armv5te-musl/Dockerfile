@@ -1,8 +1,10 @@
 ARG ALPINE_VER=3.14
-FROM amd64/alpine:${ALPINE_VER}
+FROM arm32v5/alpine:${ALPINE_VER}
+
+ENV ALPINE_VER=${ALPINE_VER}
 
 # For FTL test compilation
-ARG CI_ARCH="x86_64-musl"
+ARG CI_ARCH="armv5-musl"
 ARG GIT_TAG="test-build"
 ARG GIT_BRANCH="special/CI_development"
 

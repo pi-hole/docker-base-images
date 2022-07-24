@@ -19,7 +19,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        ARCH: [aarch64, armv4t, armv5te, armv6hf,armv7hf,armv8a,x86_32,x86_64,x86_64-musl]
+        ARCH: [aarch64, aarch64-musl, armv4t, armv5te, armv5te-musl, armv6hf, armv6hf-musl, armv7hf, armv7hf-musl, armv8a, x86_32, x86_32-musl, x86_64, x86_64-musl]
     steps:
       -
         name: Checkout Repo

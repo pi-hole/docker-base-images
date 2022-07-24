@@ -1,4 +1,4 @@
-ARG ALPINE_VER=v3.14
+ARG ALPINE_VER=3.14
 FROM i386/alpine:${ALPINE_VER}
 
 # For FTL test compilation
@@ -30,7 +30,7 @@ RUN apk add --no-cache \
     tar
 
 # Install pdns from community repo
-RUN echo "@community http://dl-cdn.alpinelinux.org/alpine/${ALPINE_VER}/community" >> /etc/apk/repositories; \
+RUN echo "@community http://dl-cdn.alpinelinux.org/alpine/v${ALPINE_VER}/community" >> /etc/apk/repositories; \
     apk update; \
     apk add --no-cache \
     pdns \

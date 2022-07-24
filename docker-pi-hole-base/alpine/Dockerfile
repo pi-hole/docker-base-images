@@ -1,10 +1,10 @@
-ARG ALPINE_VERSION=v3.14
+ARG ALPINE_VERSION=3.14
 FROM alpine:${ALPINE_VERSION}
 
-ARG ALPINE_VERSION
 ENV phpver="php"
 
-RUN { \
+RUN [ "${ALPINE_VERSION}" != 'latest' ] && ALPINE_VERSION="v${ALPINE_VERSION}"; \
+    { \
     echo 'https://dl-cdn.alpinelinux.org/alpine/edge/main/' \
     echo 'https://dl-cdn.alpinelinux.org/alpine/edge/community/' \
     } >> /etc/apk/repositories \

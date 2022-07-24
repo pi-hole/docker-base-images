@@ -2,13 +2,13 @@ name: docker-pi-hole-base build
 on:
   pull_request:
     paths:
-      - 'docker-pi-hole-base/**'
+      - 'docker-pi-hole-base/**/**'
       - '.github/workflows/docker-pi-hole-base.yml'
   push:
     branches:
       - "master"
     paths:
-      - 'docker-pi-hole-base/**'
+      - 'docker-pi-hole-base/**/**'
       - '.github/workflows/docker-pi-hole-base.yml'
   workflow_dispatch:
   schedule:
@@ -22,6 +22,7 @@ jobs:
       fail-fast: false
       matrix:
         DEBIAN_VERSION: [bullseye-slim]
+        ALPINE_VERSION: [latest]
     steps:
       -
         name: Checkout Repo
@@ -33,15 +34,25 @@ jobs:
         name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
       -
-        name: Docker meta
+        name: Docker meta - Debian
         id: meta
         uses: docker/metadata-action@v3
         with:
           images: |
-            ${{ secrets.DOCKERHUB_NAMESPACE }}/docker-pi-hole-base
-            ghcr.io/${{ github.repository_owner }}/docker-pi-hole-base
+            ${{ secrets.DOCKERHUB_NAMESPACE }}/docker-pi-hole-base/debian-based
+            ghcr.io/${{ github.repository_owner }}/docker-pi-hole-base/debian-based
           tags: |
             ${{ matrix.DEBIAN_VERSION }}
+      -
+        name: Docker meta - Alpine
+        id: meta
+        uses: docker/metadata-action@v3
+        with:
+          images: |
+            ${{ secrets.DOCKERHUB_NAMESPACE }}/docker-pi-hole-base/alpine
+            ghcr.io/${{ github.repository_owner }}/docker-pi-hole-base/alpine
+          tags: |
+            ${{ matrix.ALPINE_VERSION }}
       -
         name: Login to DockerHub
         if: github.event_name != 'pull_request'
@@ -58,13 +69,24 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
       -
-        name: Build and push
+        name: Build and push - Debian
         uses: docker/build-push-action@v2
         with:
-          context: docker-pi-hole-base/.
+          context: docker-pi-hole-base/debian-based/.
           platforms: linux/amd64, linux/arm64, linux/386, linux/arm/v7, linux/arm/v6, linux/ppc64le
           build-args: |
             DEBIAN_VERSION=${{ matrix.DEBIAN_VERSION }}
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+      -
+        name: Build and push - Alpine
+        uses: docker/build-push-action@v2
+        with:
+          context: docker-pi-hole-base/alpine/.
+          platforms: linux/amd64, linux/arm64, linux/386, linux/arm/v7, linux/arm/v6, linux/ppc64le
+          build-args: |
+            ALPINE_VERSION=${{ matrix.ALPINE_VERSION }}
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

@@ -47,7 +47,7 @@ RUN ln -s /usr/arm-linux-gnueabi/lib/libm.so /usr/local/lib/
 
 RUN curl -sSL https://ftl.pi-hole.net/libraries/libidn-${idnversion}.tar.gz | tar -xz \
     && cd libidn-${idnversion} \
-    && ./configure --host=armv6-linux-gnueabi --enable-static --disable-shared --disable-doc --without-examples \
+    && ./configure --host=arm-linux-gnueabi --enable-static --disable-shared --disable-doc --without-examples \
     && make -j $(nproc) install \
     && cd .. \
     && rm -r libidn-${idnversion}

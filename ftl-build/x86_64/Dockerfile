@@ -66,7 +66,7 @@ ENV CC gcc
 
 RUN curl -sSL https://ftl.pi-hole.net/libraries/libidn-${idnversion}.tar.gz | tar -xz \
     && cd libidn-${idnversion} \
-    && ./configure --host=armv7-linux-gnueabi --enable-static --disable-shared --disable-doc --without-examples \
+    && ./configure --enable-static --disable-shared --disable-doc --without-examples \
     && make -j $(nproc) install \
     && cd .. \
     && rm -r libidn-${idnversion}

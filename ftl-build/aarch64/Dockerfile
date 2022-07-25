@@ -5,7 +5,8 @@ ARG CI_ARCH="aarch64"
 ARG GIT_TAG="test-build"
 ARG GIT_BRANCH="special/CI_development"
 
-ARG readlineversion=8.0
+ARG idnversion=1.41
+ARG readlineversion=8.1
 ARG termcapversion=1.3.1
 
 RUN dpkg --add-architecture arm64 \
@@ -19,7 +20,6 @@ RUN dpkg --add-architecture arm64 \
         libc-dev-arm64-cross \
         libcap-dev:arm64 \
         libcap2-bin \
-        libidn11-dev:arm64 \
         make \
         netcat-traditional \
         nettle-dev:arm64 \
@@ -42,6 +42,13 @@ RUN echo "deb http://deb.debian.org/debian stretch-backports main contrib non-fr
         dnsutils
 
 ENV CC aarch64-linux-gnu-gcc -isystem /usr/local/include
+
+RUN curl -sSL https://ftl.pi-hole.net/libraries/libidn-${idnversion}.tar.gz | tar -xz \
+    && cd libidn-${idnversion} \
+    && ./configure --host=aarch64-linux-gnueabi --enable-static --disable-shared --disable-doc --without-examples \
+    && make -j $(nproc) install \
+    && cd .. \
+    && rm -r libidn-${idnversion}
 
 RUN curl -sSL https://ftl.pi-hole.net/libraries/termcap-${termcapversion}.tar.gz | tar -xz \
     && cd termcap-${termcapversion} \

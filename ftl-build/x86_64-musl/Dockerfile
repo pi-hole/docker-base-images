@@ -6,8 +6,8 @@ ARG CI_ARCH="x86_64-musl"
 ARG GIT_TAG="test-build"
 ARG GIT_BRANCH="special/CI_development"
 
-ARG idnversion=1.36
-ARG readlineversion=8.0
+ARG idnversion=1.41
+ARG readlineversion=8.1
 ARG termcapversion=1.3.1
 
 RUN apk add --no-cache \

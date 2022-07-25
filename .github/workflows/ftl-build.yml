@@ -3,11 +3,13 @@ on:
   pull_request:
     paths:
       - 'ftl-build/**'
+      - '.github/workflows/ftl-build.yml'
   push:
     tags:
       - "**"
     paths:
       - 'ftl-build/**'
+      - '.github/workflows/ftl-build.yml'
   workflow_dispatch:
   schedule:
     # 1:30am UTC every Sunday, has no particular significance

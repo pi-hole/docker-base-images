@@ -1,4 +1,4 @@
-# We cannot use buster here due to glibc version incompatibilities
+# The official Raspberry Pi toolchain isn't compatible with Buster
 FROM debian:stretch
 
 # For FTL test compilation

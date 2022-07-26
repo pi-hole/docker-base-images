@@ -40,7 +40,8 @@ RUN echo "deb http://deb.debian.org/debian stretch-backports main contrib non-fr
     && apt-get update \
     && apt-get -t stretch-backports install --no-install-recommends -y \
         git \
-        dnsutils
+        dnsutils \
+    && rm -rf /var/lib/apt/lists/*
 
 ENV CC "arm-linux-gnueabi-gcc -isystem /usr/local/include"
 RUN ln -s /usr/arm-linux-gnueabi/lib/libm.so /usr/local/lib/

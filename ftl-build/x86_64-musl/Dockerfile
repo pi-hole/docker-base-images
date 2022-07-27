@@ -1,4 +1,4 @@
-ARG ALPINE_VER=3.14
+ARG ALPINE_VER=3.16
 FROM alpine:${ALPINE_VER}
 
 # For FTL test compilation

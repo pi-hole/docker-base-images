@@ -9,7 +9,9 @@ ARG idnversion=1.41
 ARG readlineversion=8.1
 ARG termcapversion=1.3.1
 
+# We need a more recent dnsutils version for native HTTPS and SVCB support in dig
 RUN dpkg --add-architecture i386 \
+    && echo "deb http://deb.debian.org/debian buster-backports main contrib non-free" >> /etc/apt/sources.list \
     && apt-get update \
     && apt-get install --no-install-recommends -y \
         ca-certificates \
@@ -32,6 +34,9 @@ RUN dpkg --add-architecture i386 \
         jq \
         gnupg \
         psmisc \
+        git \
+    && apt-get -t buster-backports install --no-install-recommends -y \
+        dnsutils \
     && rm -rf /var/lib/apt/lists/*
 
 # Pin powerdns repo in APT to get pdns-recursor
@@ -46,14 +51,6 @@ RUN echo "deb [arch=amd64] http://repo.powerdns.com/debian buster-auth-46 main" 
 # Wget the pdns-backend-sqlite3.deb and install it
 RUN wget https://repo.powerdns.com/debian/pool/main/p/pdns/pdns-backend-sqlite3_4.6.3-1pdns.buster_amd64.deb; \
     dpkg -i pdns-backend-sqlite3_4.6.3-1pdns.buster_amd64.deb
-
-# Github actions/Checkout@v2 requires git >=2.18 else it will fall back to github API to download tarball
-# stretch-backports also has dnsutils 9.11.5, which has support for +unknown (See https://github.com/pi-hole/FTL/pull/1223#discussion_r731148277)
-RUN echo "deb http://deb.debian.org/debian stretch-backports main contrib non-free" >> /etc/apt/sources.list \
-    && apt-get update \
-    && apt-get -t stretch-backports install --no-install-recommends -y \
-        git \
-        dnsutils
 
 ENV CC "gcc -m32"
 RUN ln -s /usr/lib32/libm.so /usr/local/lib/

@@ -1,5 +1,4 @@
-# The official Raspberry Pi toolchain isn't compatible with Buster
-FROM debian:stretch
+FROM debian:buster
 
 # For FTL test compilation
 ARG CI_ARCH="armv6hf"
@@ -31,33 +30,25 @@ RUN dpkg --add-architecture armel \
         libc6-dev:armel \
         xxd \
         jq \
+        git \
     && rm -rf /var/lib/apt/lists/*
 
-# Github actions/Checkout@v2 requires git >=2.18 else it will fall back to github API to download tarball
-RUN echo "deb http://deb.debian.org/debian stretch-backports main contrib non-free" >> /etc/apt/sources.list; \
-    apt-get update; \
-    apt-get -t stretch-backports install git -y
+# Use cross-compiler from https://github.com/abhiTronix/raspberry-pi-cross-compilers
+# Configuration: builder = any 64bit Linux
+#                target = optimized for Raspberry Pi Zero, GCC version 10.3.0
+RUN curl -sSL https://ftl.pi-hole.net/libraries/cross-gcc-10.3.0-pi_0-1.tar.gz | tar -xz
+ENV PATH "/cross-pi-gcc-10.3.0-0/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+ENV LD_LIBRARY_PATH "/cross-pi-gcc-10.3.0-0/lib:/cross-pi-gcc-10.3.0-0/arm-linux-gnueabihf/libc/usr/lib/"
 
-# Use Raspbian's GCC
-# This command was taken from https://github.com/dockcross/dockcross/blob/master/linux-armv6/Dockerfile
-# Slightly modified from the original
-RUN mkdir rpi_tools && cd rpi_tools && git init && git remote add origin https://github.com/raspberrypi/tools && \
-    git config core.sparseCheckout true && \
-    echo "arm-bcm2708/arm-rpi-4.9.3-linux-gnueabihf" >> .git/info/sparse-checkout && \
-    git pull --depth=1 origin master && \
-    cp -a arm-bcm2708/arm-rpi-4.9.3-linux-gnueabihf/* /usr/ && rm -rf ../rpi_tools
+# We use the libnettle and libidn headers from the armel packages, however, we
+# use the armv6 compatible libraries we built on a Raspberry Pi Zero
+ENV CC "arm-linux-gnueabihf-gcc -isystem/usr/include -isystem/usr/include/arm-linux-gnueabi -isystem/usr/local/include"
+RUN ln -s /cross-pi-gcc-10.3.0-0/arm-linux-gnueabihf/libc/usr/lib/libm.so /usr/local/lib/
 
 # Download procompiled armv6 libraries
 RUN wget https://ftl.pi-hole.net/libraries/libgmp.a -O /usr/local/lib/libgmp.a && \
     wget https://ftl.pi-hole.net/libraries/libnettle.a -O /usr/local/lib/libnettle.a && \
     wget https://ftl.pi-hole.net/libraries/libhogweed.a -O /usr/local/lib/libhogweed.a
-
-# We use the libnettle and libidn headers from the armel packages, however, we
-# use the armv6 compatible libraries we built on a Raspberry Pi Zero and
-# uploaded them to ftl.pi-hole.net. Note that we do NOT include
-# -L/usr/lib/arm-linux-gnueabihf here as this would result in incompatible binaries
-ENV CC "arm-linux-gnueabihf-gcc -isystem /usr/include -isystem /usr/include/arm-linux-gnueabi -isystem /usr/local/include -L/usr/local/lib"
-RUN ln -s /usr/arm-linux-gnueabihf/sysroot/usr/lib/libm.so /usr/local/lib/
 
 RUN curl -sSL https://ftl.pi-hole.net/libraries/libidn-${idnversion}.tar.gz | tar -xz \
     && cd libidn-${idnversion} \

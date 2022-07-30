@@ -1,4 +1,4 @@
-FROM debian:stretch
+FROM debian:buster
 
 # For FTL test compilation
 ARG CI_ARCH="aarch64"
@@ -31,15 +31,9 @@ RUN dpkg --add-architecture arm64 \
         libc6-dev:arm64 \
         xxd \
         jq \
-    && rm -rf /var/lib/apt/lists/*
-
-# Github actions/Checkout@v2 requires git >=2.18 else it will fall back to github API to download tarball
-# stretch-backports also has dnsutils 9.11.5, which has support for +unknown (See https://github.com/pi-hole/FTL/pull/1223#discussion_r731148277)
-RUN echo "deb http://deb.debian.org/debian stretch-backports main contrib non-free" >> /etc/apt/sources.list \
-    && apt-get update \
-    && apt-get -t stretch-backports install --no-install-recommends -y \
         git \
-        dnsutils
+        dnsutils \
+    && rm -rf /var/lib/apt/lists/*
 
 ENV CC aarch64-linux-gnu-gcc -isystem /usr/local/include
 

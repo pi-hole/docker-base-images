@@ -39,7 +39,7 @@ RUN ln -s /usr/arm-linux-gnueabi/lib/libm.so /usr/local/lib/
 
 RUN curl -sSL https://ftl.pi-hole.net/libraries/libidn-${idnversion}.tar.gz | tar -xz \
     && cd libidn-${idnversion} \
-    && ./configure --host=arm-linux-gnueabi --enable-static --disable-shared --disable-doc --without-examples \
+    && ./configure --host=arm-linux-gnueabi --enable-static --disable-shared --disable-doc --disable-valgrind-tests \
     && make -j $(nproc) install \
     && cd .. \
     && rm -r libidn-${idnversion}
@@ -55,7 +55,7 @@ RUN curl -sSL https://ftl.pi-hole.net/libraries/termcap-${termcapversion}.tar.gz
 
 RUN curl -sSL https://ftl.pi-hole.net/libraries/readline-${readlineversion}.tar.gz | tar -xz \
     && cd readline-${readlineversion} \
-    && ./configure --host=arm-linux-gnueabi --enable-static --disable-shared --disable-doc --without-examples \
+    && ./configure --host=arm-linux-gnueabi --enable-static --disable-shared --disable-install-examples \
     && make -j $(nproc) \
     && make install-static \
     && ls /usr/local/lib/ \

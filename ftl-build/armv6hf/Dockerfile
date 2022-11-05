@@ -1,4 +1,4 @@
-FROM debian:buster
+FROM debian:buster@sha256:0685c900f6e691bdda6980c0ed0779d20183bc58770059b64adb56cb8a3129f0
 
 # For FTL test compilation
 ARG CI_ARCH="armv6hf"
@@ -26,8 +26,10 @@ RUN dpkg --add-architecture armel \
         cmake \
         nettle-dev:armel \
         libcap-dev:armel \
-        libgmp-dev:armel \
-        libc6-dev:armel \
+        gcc-arm-linux-gnueabi \
+        libc6-dev-armel-cross \
+        libcap2-bin \
+        libc6:armel \
         xxd \
         jq \
         git \

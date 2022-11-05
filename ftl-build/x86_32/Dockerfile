@@ -8,6 +8,7 @@ ARG GIT_BRANCH="special/CI_development"
 ARG idnversion=1.41
 ARG readlineversion=8.1
 ARG termcapversion=1.3.1
+ARG nettleversion=3.8
 
 # We need a more recent dnsutils version for native HTTPS and SVCB support in dig
 RUN dpkg --add-architecture i386 \
@@ -23,7 +24,8 @@ RUN dpkg --add-architecture i386 \
         libcap-dev:i386 \
         make \
         netcat-traditional \
-        nettle-dev:i386 \
+        m4 \
+        libgmp-dev:i386 \
         sqlite3 \
         ssh \
         wget \
@@ -57,7 +59,7 @@ RUN ln -s /usr/lib32/libm.so /usr/local/lib/
 
 RUN curl -sSL https://ftl.pi-hole.net/libraries/libidn-${idnversion}.tar.gz | tar -xz \
     && cd libidn-${idnversion} \
-    && ./configure --enable-static --disable-shared --disable-doc --without-examples \
+    && ./configure --enable-static --disable-shared --disable-doc --disable-valgrind-tests \
     && make -j $(nproc) install \
     && cd .. \
     && rm -r libidn-${idnversion}
@@ -73,12 +75,19 @@ RUN curl -sSL https://ftl.pi-hole.net/libraries/termcap-${termcapversion}.tar.gz
 
 RUN curl -sSL https://ftl.pi-hole.net/libraries/readline-${readlineversion}.tar.gz | tar -xz \
     && cd readline-${readlineversion} \
-    && ./configure --enable-static --disable-shared --disable-doc --without-examples \
+    && ./configure --enable-static --disable-shared --disable-install-examples \
     && make -j $(nproc) \
     && make install-static \
     && ls /usr/local/lib/ \
     && cd .. \
     && rm -r readline-${readlineversion}
+
+RUN curl -sSL https://ftl.pi-hole.net/libraries/nettle-${nettleversion}.tar.gz | tar -xz \
+    && cd nettle-${nettleversion} \
+    && ./configure --enable-static --disable-shared --disable-documentation \
+    && make -j $(nproc) install \
+    && cd .. \
+    && rm -r nettle-${nettleversion}
 
 # Install bats-core directly into the build image
 RUN git clone https://github.com/bats-core/bats-core.git \

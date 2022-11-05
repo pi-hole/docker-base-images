@@ -1,4 +1,5 @@
-FROM debian:buster
+# Issue with apt-get in latest buster base for armel packages - pin to specific digest until it is fixed upstream
+FROM debian:buster@sha256:0685c900f6e691bdda6980c0ed0779d20183bc58770059b64adb56cb8a3129f0
 
 # For FTL test compilation
 ARG CI_ARCH="armv6hf"
@@ -26,8 +27,10 @@ RUN dpkg --add-architecture armel \
         cmake \
         nettle-dev:armel \
         libcap-dev:armel \
-        libgmp-dev:armel \
-        libc6-dev:armel \
+        gcc-arm-linux-gnueabi \
+        libc6-dev-armel-cross \
+        libcap2-bin \
+        libc6:armel \
         xxd \
         jq \
         git \
@@ -52,7 +55,7 @@ RUN wget https://ftl.pi-hole.net/libraries/libgmp.a -O /usr/local/lib/libgmp.a &
 
 RUN curl -sSL https://ftl.pi-hole.net/libraries/libidn-${idnversion}.tar.gz | tar -xz \
     && cd libidn-${idnversion} \
-    && ./configure --host=armv6-linux-gnueabi --enable-static --disable-shared --disable-doc --without-examples \
+    && ./configure --host=armv6-linux-gnueabi --enable-static --disable-shared --disable-doc --disable-valgrind-tests \
     && make -j $(nproc) install \
     && cd .. \
     && rm -r libidn-${idnversion}
@@ -68,7 +71,7 @@ RUN curl -sSL https://ftl.pi-hole.net/libraries/termcap-${termcapversion}.tar.gz
 
 RUN curl -sSL https://ftl.pi-hole.net/libraries/readline-${readlineversion}.tar.gz | tar -xz \
     && cd readline-${readlineversion} \
-    && ./configure --host=armv6-linux-gnueabi --enable-static --disable-shared --disable-doc --without-examples \
+    && ./configure --host=armv6-linux-gnueabi --enable-static --disable-shared --disable-install-examples \
     && make -j $(nproc) \
     && make install-static \
     && ls /usr/local/lib/ \

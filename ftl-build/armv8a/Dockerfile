@@ -8,6 +8,7 @@ ARG GIT_BRANCH="special/CI_development"
 ARG idnversion=1.41
 ARG readlineversion=8.1
 ARG termcapversion=1.3.1
+ARG nettleversion=3.8
 
 RUN dpkg --add-architecture armhf \
     && apt-get update \
@@ -15,13 +16,15 @@ RUN dpkg --add-architecture armhf \
         ca-certificates \
         curl \
         file \
+        build-essential \
         gcc-arm-linux-gnueabihf \
         libc6-dev-armhf-cross \
         libcap-dev:armhf \
         libcap2-bin \
         make \
         netcat-traditional \
-        nettle-dev:armhf \
+        m4 \
+        libgmp-dev:armhf \
         ssh \
         sqlite3 \
         wget \
@@ -39,7 +42,7 @@ RUN ln -s /usr/arm-linux-gnueabihf/lib/libm.so /usr/local/lib/
 
 RUN curl -sSL https://ftl.pi-hole.net/libraries/libidn-${idnversion}.tar.gz | tar -xz \
     && cd libidn-${idnversion} \
-    && ./configure --host=armv8-linux-gnueabi --enable-static --disable-shared --disable-doc --without-examples \
+    && ./configure --host=armv8-linux-gnueabi --enable-static --disable-shared --disable-doc --disable-valgrind-tests \
     && make -j $(nproc) install \
     && cd .. \
     && rm -r libidn-${idnversion}
@@ -55,12 +58,20 @@ RUN curl -sSL https://ftl.pi-hole.net/libraries/termcap-${termcapversion}.tar.gz
 
 RUN curl -sSL https://ftl.pi-hole.net/libraries/readline-${readlineversion}.tar.gz | tar -xz \
     && cd readline-${readlineversion} \
-    && ./configure --host=armv8-linux-gnueabihf --enable-static --disable-shared --disable-doc --without-examples \
+    && ./configure --host=armv8-linux-gnueabihf --enable-static --disable-shared --disable-install-examples \
     && make -j $(nproc) \
     && make install-static \
     && ls /usr/local/lib/ \
     && cd .. \
     && rm -r readline-${readlineversion}
+
+# --disable-fat is needed to prevent the wrong FP architecture (we expect VFPv3-D16 - without this option we get vFPv3)
+RUN curl -sSL https://ftl.pi-hole.net/libraries/nettle-${nettleversion}.tar.gz | tar -xz \
+    && cd nettle-${nettleversion} \
+    && ./configure --host=armv8-linux-gnueabihf --enable-static --disable-shared --disable-fat --disable-documentation \
+    && make -j $(nproc) install \
+    && cd .. \
+    && rm -r nettle-${nettleversion}
 
 # Test compile FTL's development branch, the result is removed from the final container
 # We accept errors in the test step to be able to update the arch_tests if a change is intended

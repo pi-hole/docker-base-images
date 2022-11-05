@@ -1,3 +1,4 @@
+# Issue with apt-get in latest buster base for armel packages - pin to specific digest until it is fixed upstream
 FROM debian:buster@sha256:0685c900f6e691bdda6980c0ed0779d20183bc58770059b64adb56cb8a3129f0
 
 # For FTL test compilation

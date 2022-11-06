@@ -76,7 +76,7 @@ RUN curl -sSL https://ftl.pi-hole.net/libraries/readline-${readlineversion}.tar.
 
 RUN curl -sSL https://ftl.pi-hole.net/libraries/nettle-${nettleversion}.tar.gz | tar -xz \
     && cd nettle-${nettleversion} \
-    && ./configure --enable-static --disable-shared --enable-mini-gmp \
+    && ./configure --enable-static --disable-shared \
     && make -j $(nproc) install \
     && cd .. \
     && rm -r nettle-${nettleversion}

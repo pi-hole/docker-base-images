@@ -1,9 +1,4 @@
-FROM debian:buster
-
-# For FTL test compilation
-ARG CI_ARCH="aarch64"
-ARG GIT_TAG="test-build"
-ARG GIT_BRANCH="special/CI_development"
+FROM debian:buster AS builder
 
 ARG idnversion=1.41
 ARG readlineversion=8.1
@@ -71,6 +66,13 @@ RUN curl -sSL https://ftl.pi-hole.net/libraries/nettle-${nettleversion}.tar.gz |
     && make -j $(nproc) install \
     && cd .. \
     && rm -r nettle-${nettleversion}
+
+FROM builder AS tester
+
+# For FTL test compilation
+ARG CI_ARCH="aarch64"
+ARG GIT_TAG="test-build"
+ARG GIT_BRANCH="special/CI_development"
 
 # Test compile FTL's development branch, the result is removed from the final container
 # We accept errors in the test step to be able to update the arch_tests if a change is intended

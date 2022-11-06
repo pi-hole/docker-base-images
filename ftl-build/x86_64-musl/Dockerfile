@@ -1,10 +1,5 @@
 ARG ALPINE_VER=3.16
-FROM alpine:${ALPINE_VER}
-
-# For FTL test compilation
-ARG CI_ARCH="x86_64-musl"
-ARG GIT_TAG="test-build"
-ARG GIT_BRANCH="special/CI_development"
+FROM alpine:${ALPINE_VER} AS builder
 
 ARG idnversion=1.41
 ARG readlineversion=8.1
@@ -77,6 +72,13 @@ RUN git clone https://github.com/bats-core/bats-core.git \
     && cd bats-core
 
 ENV BATS=/bats-core/bin/bats
+
+FROM builder AS tester
+
+# For FTL test compilation
+ARG CI_ARCH="x86_64-musl"
+ARG GIT_TAG="test-build"
+ARG GIT_BRANCH="special/CI_development"
 
 # Test compile FTL's development branch, the result is removed from the final container
 # We accept errors in the arwch_test step to be able to update the arch_tests if a change is intended

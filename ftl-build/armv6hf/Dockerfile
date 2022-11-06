@@ -1,10 +1,5 @@
 # Issue with apt-get in latest buster base for armel packages - pin to specific digest until it is fixed upstream
-FROM debian:buster@sha256:0685c900f6e691bdda6980c0ed0779d20183bc58770059b64adb56cb8a3129f0
-
-# For FTL test compilation
-ARG CI_ARCH="armv6hf"
-ARG GIT_TAG="test-build"
-ARG GIT_BRANCH="special/CI_development"
+FROM debian:buster@sha256:0685c900f6e691bdda6980c0ed0779d20183bc58770059b64adb56cb8a3129f0 AS builder
 
 ARG idnversion=1.41
 ARG readlineversion=8.1
@@ -77,6 +72,13 @@ RUN curl -sSL https://ftl.pi-hole.net/libraries/readline-${readlineversion}.tar.
     && ls /usr/local/lib/ \
     && cd .. \
     && rm -r readline-${readlineversion}
+
+FROM builder AS tester
+
+# For FTL test compilation
+ARG CI_ARCH="armv6hf"
+ARG GIT_TAG="test-build"
+ARG GIT_BRANCH="special/CI_development"
 
 # Test compile FTL's development branch, the result is removed from the final container
 # We accept errors in the test step to be able to update the arch_tests if a change is intended

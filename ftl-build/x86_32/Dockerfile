@@ -3,7 +3,7 @@ FROM debian:buster AS builder
 ARG idnversion=1.41
 ARG readlineversion=8.1
 ARG termcapversion=1.3.1
-ARG nettleversion=3.8
+ARG nettleversion=3.8.1
 
 # We need a more recent dnsutils version for native HTTPS and SVCB support in dig
 RUN dpkg --add-architecture i386 \

@@ -4,7 +4,7 @@ FROM alpine:${ALPINE_VER} AS builder
 ARG idnversion=1.41
 ARG readlineversion=8.1
 ARG termcapversion=1.3.1
-ARG nettleversion=3.8
+ARG nettleversion=3.8.1
 
 RUN apk add --no-cache \
         alpine-sdk \

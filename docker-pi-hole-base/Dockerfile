@@ -1,5 +1,5 @@
-ARG DEBIAN_VERSION
-FROM debian:${DEBIAN_VERSION:-bullseye-slim}
+ARG DEBIAN_VERSION=bullseye-slim
+FROM debian:${DEBIAN_VERSION}
 
 ARG DEBIAN_VERSION
 ENV phpver="php"

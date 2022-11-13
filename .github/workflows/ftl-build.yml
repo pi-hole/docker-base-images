@@ -73,7 +73,7 @@ jobs:
           # cache-to: type=gha,scope=${{ matrix.ARCH }},mode=max
       -
         name: Build (all-in)
-        if: ${{ matrix.ARCH }} == 'x86_64'
+        if: matrix.ARCH == 'x86_64'
         uses: docker/build-push-action@v3
         with:
           context: ftl-build/${{ matrix.ARCH }}/.

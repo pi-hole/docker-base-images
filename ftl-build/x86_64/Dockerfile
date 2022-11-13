@@ -136,6 +136,7 @@ ENV BATS=/bats-core/bin/bats
 FROM builder AS all-in-compilation
 
 # For FTL test compilation
+# Setting `CI_ARCH` to `x86_64_full` will trigger a compilation with extensive compiler options enabled within the makefile 
 ARG CI_ARCH="x86_64_full"
 ARG GIT_TAG="test-build"
 ARG GIT_BRANCH="special/CI_development"

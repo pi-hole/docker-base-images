@@ -133,7 +133,7 @@ RUN git clone https://github.com/bats-core/bats-core.git \
 
 ENV BATS=/bats-core/bin/bats
 
-FROM builder AS all-in-compilation
+FROM builder AS tester-all-in
 
 # For FTL test compilation
 # Setting `CI_ARCH` to `x86_64_full` will trigger a compilation with extensive compiler options enabled within the makefile 
@@ -148,6 +148,7 @@ RUN git clone https://github.com/pi-hole/FTL.git \
     && cd FTL \
     && git checkout "${GIT_BRANCH}" \
     && bash build.sh "-DSTATIC=${STATIC}" \
+    && bash test/arch_test.sh \
     && bash test/run.sh \
     && cd .. \
     && rm -r FTL

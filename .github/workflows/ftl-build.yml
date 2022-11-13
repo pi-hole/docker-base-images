@@ -21,7 +21,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        ARCH: [aarch64, armv4t, armv5te, armv6hf,armv7hf,armv8a,x86_32,x86_64,x86_64-musl]
+        ARCH: [aarch64, armv4t, armv5te, armv6hf, armv7hf, armv8a, x86_32, x86_64, x86_64-musl]
     steps:
       -
         name: Checkout Repo
@@ -71,6 +71,16 @@ jobs:
           # Caching disabled for now...
           # cache-from: type=gha,scope=${{ matrix.ARCH }}
           # cache-to: type=gha,scope=${{ matrix.ARCH }},mode=max
+      -
+        name: Build (all-in)
+        if: matrix.ARCH == 'x86_64'
+        uses: docker/build-push-action@v3
+        with:
+          context: ftl-build/${{ matrix.ARCH }}/.
+          push: false
+          target: tester-all-in
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
       -
         name: Push
         if: github.event_name != 'pull_request'

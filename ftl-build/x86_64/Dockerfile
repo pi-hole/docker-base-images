@@ -39,6 +39,8 @@ RUN echo "deb http://deb.debian.org/debian buster-backports main contrib non-fre
         # dnsmasq all-options dependencies below
         libdbus-1-dev \
         pkg-config \
+        python3 \
+        python3-yaml \
     && apt-get -t buster-backports install --no-install-recommends -y \
         dnsutils \
     && rm -rf /var/lib/apt/lists/*

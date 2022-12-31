@@ -32,6 +32,8 @@ RUN dpkg --add-architecture i386 \
         gnupg \
         psmisc \
         git \
+        python3 \
+        python3-yaml \
     && apt-get -t buster-backports install --no-install-recommends -y \
         dnsutils \
     && rm -rf /var/lib/apt/lists/*

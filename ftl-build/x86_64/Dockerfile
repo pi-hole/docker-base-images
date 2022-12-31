@@ -56,9 +56,9 @@ RUN echo "deb [arch=amd64] http://repo.powerdns.com/debian buster-auth-46 main" 
     rm -rf /var/lib/apt/lists/*
 
 # Download the pdns-backend-sqlite3.deb and install it
-RUN wget https://repo.powerdns.com/debian/pool/main/p/pdns/pdns-backend-sqlite3_4.6.3-1pdns.buster_amd64.deb && \
-    dpkg -i pdns-backend-sqlite3_4.6.3-1pdns.buster_amd64.deb && \
-    rm pdns-backend-sqlite3_4.6.3-1pdns.buster_amd64.deb
+RUN wget https://repo.powerdns.com/debian/pool/main/p/pdns/pdns-backend-sqlite3_4.6.4-1pdns.buster_amd64.deb && \
+    dpkg -i pdns-backend-sqlite3_4.6.4-1pdns.buster_amd64.deb && \
+    rm pdns-backend-sqlite3_4.6.4-1pdns.buster_amd64.deb
 
 ENV CC gcc
 

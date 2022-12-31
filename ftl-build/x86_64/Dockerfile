@@ -39,6 +39,8 @@ RUN echo "deb http://deb.debian.org/debian buster-backports main contrib non-fre
         # dnsmasq all-options dependencies below
         libdbus-1-dev \
         pkg-config \
+        python3 \
+        python3-yaml \
     && apt-get -t buster-backports install --no-install-recommends -y \
         dnsutils \
     && rm -rf /var/lib/apt/lists/*
@@ -54,9 +56,9 @@ RUN echo "deb [arch=amd64] http://repo.powerdns.com/debian buster-auth-46 main" 
     rm -rf /var/lib/apt/lists/*
 
 # Download the pdns-backend-sqlite3.deb and install it
-RUN wget https://repo.powerdns.com/debian/pool/main/p/pdns/pdns-backend-sqlite3_4.6.3-1pdns.buster_amd64.deb && \
-    dpkg -i pdns-backend-sqlite3_4.6.3-1pdns.buster_amd64.deb && \
-    rm pdns-backend-sqlite3_4.6.3-1pdns.buster_amd64.deb
+RUN wget https://repo.powerdns.com/debian/pool/main/p/pdns/pdns-backend-sqlite3_4.6.4-1pdns.buster_amd64.deb && \
+    dpkg -i pdns-backend-sqlite3_4.6.4-1pdns.buster_amd64.deb && \
+    rm pdns-backend-sqlite3_4.6.4-1pdns.buster_amd64.deb
 
 ENV CC gcc
 
@@ -108,7 +110,7 @@ RUN curl -sSL https://ftl.pi-hole.net/libraries/libnftnl-${libnftnlversion}.tar.
 
 RUN curl -sSL https://ftl.pi-hole.net/libraries/nftables-${nftablesversion}.tar.bz2 | tar -xj \
     && cd nftables-${nftablesversion} \
-    && ./configure --without-cli --disable-dependency-tracking --disable-man-doc \
+    && ./configure --without-cli --disable-dependency-tracking --disable-man-doc --enable-python=no \
     && make -j $(nproc) install \
     && cd .. \
     && rm -r nftables-${nftablesversion}

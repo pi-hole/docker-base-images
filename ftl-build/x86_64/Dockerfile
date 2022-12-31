@@ -110,7 +110,7 @@ RUN curl -sSL https://ftl.pi-hole.net/libraries/libnftnl-${libnftnlversion}.tar.
 
 RUN curl -sSL https://ftl.pi-hole.net/libraries/nftables-${nftablesversion}.tar.bz2 | tar -xj \
     && cd nftables-${nftablesversion} \
-    && ./configure --without-cli --disable-dependency-tracking --disable-man-doc \
+    && ./configure --without-cli --disable-dependency-tracking --disable-man-doc --enable-python=no \
     && make -j $(nproc) install \
     && cd .. \
     && rm -r nftables-${nftablesversion}

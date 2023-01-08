@@ -23,7 +23,8 @@ RUN apk add --no-cache \
         jq \
         m4 \
         python3 \
-        py3-yaml
+        py3-yaml \
+        py3-requests
 
 # Install pdns from community repo
 RUN echo "@community http://dl-cdn.alpinelinux.org/alpine/v${ALPINE_VER}/community" >> /etc/apk/repositories; \

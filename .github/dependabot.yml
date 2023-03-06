@@ -7,6 +7,6 @@ updates:
       interval: "weekly"
       day: saturday
       time: "10:00"
-    target-branch: dev
+    target-branch: master
     reviewers:
       - "pi-hole/docker-maintainers"

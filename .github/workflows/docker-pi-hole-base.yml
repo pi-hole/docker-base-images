@@ -38,8 +38,9 @@ jobs:
         uses: docker/metadata-action@v4
         with:
           images: |
-            ${{ secrets.DOCKERHUB_NAMESPACE }}/docker-pi-hole-base
-            ghcr.io/${{ github.repository_owner }}/docker-pi-hole-base
+            ${{ secrets.DOCKERHUB_NAMESPACE }}/docker-pi-hole-base,enable=${{ github.event_name != 'pull_request' }}
+            ghcr.io/${{ github.repository_owner }}/docker-pi-hole-base,enable=${{ github.event_name != 'pull_request' }}
+            foo/bar,enable=${{ github.event_name == 'pull_request' }}
           tags: |
             ${{ matrix.DEBIAN_VERSION }}
       -

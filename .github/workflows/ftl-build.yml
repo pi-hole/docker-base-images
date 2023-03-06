@@ -35,8 +35,9 @@ jobs:
         uses: docker/metadata-action@v4
         with:
           images: |
-            ${{ secrets.DOCKERHUB_NAMESPACE }}/ftl-build
-            ghcr.io/${{ github.repository_owner }}/ftl-build
+            ${{ secrets.DOCKERHUB_NAMESPACE }}/ftl-build,enable=${{ github.event_name != 'pull_request' }}
+            ghcr.io/${{ github.repository_owner }}/ftl-build,enable=${{ github.event_name != 'pull_request' }}
+            foo/bar,enable=${{ github.event_name == 'pull_request' }}
           flavor: |
             latest=false
           tags: |

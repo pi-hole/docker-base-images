@@ -21,7 +21,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        DEBIAN_VERSION: [bullseye-slim]
+        job:
+          - { DEBIAN_VERSION: bullseye-slim, PLATFORMS: 'linux/amd64, linux/arm64, linux/386, linux/arm/v7, linux/arm/v6, linux/ppc64le' }
+          - { DEBIAN_VERSION: sid-slim, PLATFORMS: 'linux/riscv64' }
+    name: ${{ matrix.job.DEBIAN_VERSION }}
     steps:
       -
         name: Checkout Repo
@@ -42,7 +45,7 @@ jobs:
             ghcr.io/${{ github.repository_owner }}/docker-pi-hole-base,enable=${{ github.event_name != 'pull_request' }}
             foo/bar,enable=${{ github.event_name == 'pull_request' }}
           tags: |
-            ${{ matrix.DEBIAN_VERSION }}
+            ${{ matrix.job.DEBIAN_VERSION }}
       -
         name: Login to DockerHub
         if: github.event_name != 'pull_request'
@@ -63,9 +66,9 @@ jobs:
         uses: docker/build-push-action@v3
         with:
           context: docker-pi-hole-base/.
-          platforms: linux/amd64, linux/arm64, linux/386, linux/arm/v7, linux/arm/v6, linux/ppc64le
+          platforms: ${{ matrix.job.PLATFORMS }}
           build-args: |
-            DEBIAN_VERSION=${{ matrix.DEBIAN_VERSION }}
+            DEBIAN_VERSION=${{ matrix.job.DEBIAN_VERSION }}
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

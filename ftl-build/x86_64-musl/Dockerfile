@@ -5,6 +5,7 @@ ARG idnversion=1.41
 ARG readlineversion=8.1
 ARG termcapversion=1.3.1
 ARG nettleversion=3.8.1
+ARG mbedtlsversion=3.4.0
 
 RUN apk add --no-cache \
         alpine-sdk \
@@ -24,7 +25,9 @@ RUN apk add --no-cache \
         m4 \
         python3 \
         py3-yaml \
-        py3-requests
+        zip \
+        py3-requests \
+        perl
 
 # Install pdns from community repo
 RUN echo "@community http://dl-cdn.alpinelinux.org/alpine/v${ALPINE_VER}/community" >> /etc/apk/repositories; \
@@ -69,6 +72,15 @@ RUN curl -sSL https://ftl.pi-hole.net/libraries/nettle-${nettleversion}.tar.gz |
     && make -j $(nproc) install \
     && cd .. \
     && rm -r nettle-${nettleversion}
+
+# Build static mbedTLS with pthread support
+RUN curl -sSL https://ftl.pi-hole.net/libraries/mbedtls-${mbedtlsversion}.tar.gz | tar -xz \
+    && cd mbedtls-${mbedtlsversion} \
+    && sed -i '/#define MBEDTLS_THREADING_C/s*^//**g' include/mbedtls/mbedtls_config.h \
+    && sed -i '/#define MBEDTLS_THREADING_PTHREAD/s*^//**g' include/mbedtls/mbedtls_config.h \
+    && make -j $(nproc) install \
+    && cd .. \
+    && rm -r mbedtls-${mbedtlsversion}
 
 # Install bats-core directly into the build image
 RUN git clone https://github.com/bats-core/bats-core.git \

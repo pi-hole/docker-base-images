@@ -9,6 +9,7 @@ ARG libnftnlversion=1.2.3
 ARG nftablesversion=1.0.5
 ARG libnfnetlinkversion=1.0.2
 ARG libnetfilter_conntrackversion=1.0.9
+ARG mbedtlsversion=3.4.0
 
 # We need a more recent dnsutils version for native HTTPS and SVCB support in dig
 RUN echo "deb http://deb.debian.org/debian buster-backports main contrib non-free" >> /etc/apt/sources.list \
@@ -42,6 +43,8 @@ RUN echo "deb http://deb.debian.org/debian buster-backports main contrib non-fre
         python3 \
         python3-yaml \
         python3-requests \
+        zip \
+        perl \
     && apt-get -t buster-backports install --no-install-recommends -y \
         dnsutils \
     && rm -rf /var/lib/apt/lists/*
@@ -129,6 +132,15 @@ RUN curl -sSL https://ftl.pi-hole.net/libraries/libnetfilter_conntrack-${libnetf
     && make -j $(nproc) install \
     && cd .. \
     && rm -r libnetfilter_conntrack-${libnetfilter_conntrackversion}
+
+# Build static mbedTLS with pthread support
+RUN curl -sSL https://ftl.pi-hole.net/libraries/mbedtls-${mbedtlsversion}.tar.gz | tar -xz \
+    && cd mbedtls-${mbedtlsversion} \
+    && sed -i '/#define MBEDTLS_THREADING_C/s*^//**g' include/mbedtls/mbedtls_config.h \
+    && sed -i '/#define MBEDTLS_THREADING_PTHREAD/s*^//**g' include/mbedtls/mbedtls_config.h \
+    && make -j $(nproc) install \
+    && cd .. \
+    && rm -r mbedtls-${mbedtlsversion}
 
 # Install bats-core directly into the build image
 RUN git clone https://github.com/bats-core/bats-core.git \

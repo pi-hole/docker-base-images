@@ -4,6 +4,7 @@ FROM debian:buster@sha256:0685c900f6e691bdda6980c0ed0779d20183bc58770059b64adb56
 ARG idnversion=1.41
 ARG readlineversion=8.1
 ARG termcapversion=1.3.1
+ARG mbedtlsversion=3.4.0
 
 # Packages required to install compiler and libraries
 RUN dpkg --add-architecture armel \
@@ -29,6 +30,8 @@ RUN dpkg --add-architecture armel \
         xxd \
         jq \
         git \
+        perl \
+        python3 \
     && rm -rf /var/lib/apt/lists/*
 
 # Use cross-compiler from https://github.com/abhiTronix/raspberry-pi-cross-compilers
@@ -72,6 +75,15 @@ RUN curl -sSL https://ftl.pi-hole.net/libraries/readline-${readlineversion}.tar.
     && ls /usr/local/lib/ \
     && cd .. \
     && rm -r readline-${readlineversion}
+
+# Build static mbedTLS with pthread support
+RUN curl -sSL https://ftl.pi-hole.net/libraries/mbedtls-${mbedtlsversion}.tar.gz | tar -xz \
+    && cd mbedtls-${mbedtlsversion} \
+    && sed -i '/#define MBEDTLS_THREADING_C/s*^//**g' include/mbedtls/mbedtls_config.h \
+    && sed -i '/#define MBEDTLS_THREADING_PTHREAD/s*^//**g' include/mbedtls/mbedtls_config.h \
+    && make -j $(nproc) install \
+    && cd .. \
+    && rm -r mbedtls-${mbedtlsversion}
 
 FROM builder AS tester
 

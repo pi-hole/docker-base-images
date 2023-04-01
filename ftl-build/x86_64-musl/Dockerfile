@@ -1,4 +1,4 @@
-ARG ALPINE_VER=3.16
+ARG ALPINE_VER=3.17
 FROM alpine:${ALPINE_VER} AS builder
 
 ARG idnversion=1.41

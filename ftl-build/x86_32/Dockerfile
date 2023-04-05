@@ -4,6 +4,7 @@ ARG idnversion=1.41
 ARG readlineversion=8.1
 ARG termcapversion=1.3.1
 ARG nettleversion=3.8.1
+ARG mbedtlsversion=3.4.0
 
 # We need a more recent dnsutils version for native HTTPS and SVCB support in dig
 RUN dpkg --add-architecture i386 \
@@ -35,6 +36,8 @@ RUN dpkg --add-architecture i386 \
         python3 \
         python3-yaml \
         python3-requests \
+        zip \
+        perl \
     && apt-get -t buster-backports install --no-install-recommends -y \
         dnsutils \
     && rm -rf /var/lib/apt/lists/*
@@ -87,6 +90,15 @@ RUN curl -sSL https://ftl.pi-hole.net/libraries/nettle-${nettleversion}.tar.gz |
     && make -j $(nproc) install \
     && cd .. \
     && rm -r nettle-${nettleversion}
+
+# Build static mbedTLS with pthread support
+RUN curl -sSL https://ftl.pi-hole.net/libraries/mbedtls-${mbedtlsversion}.tar.gz | tar -xz \
+    && cd mbedtls-${mbedtlsversion} \
+    && sed -i '/#define MBEDTLS_THREADING_C/s*^//**g' include/mbedtls/mbedtls_config.h \
+    && sed -i '/#define MBEDTLS_THREADING_PTHREAD/s*^//**g' include/mbedtls/mbedtls_config.h \
+    && make -j $(nproc) install \
+    && cd .. \
+    && rm -r mbedtls-${mbedtlsversion}
 
 # Install bats-core directly into the build image
 RUN git clone https://github.com/bats-core/bats-core.git \

@@ -4,6 +4,7 @@ ARG idnversion=1.41
 ARG readlineversion=8.1
 ARG termcapversion=1.3.1
 ARG nettleversion=3.8.1
+ARG mbedtlsversion=3.4.0
 
 RUN apt-get update \
     && apt-get install --no-install-recommends -y ca-certificates debian-ports-archive-keyring \
@@ -32,6 +33,8 @@ RUN apt-get update \
         jq \
         git \
         dnsutils \
+        perl \
+        python3 \
     && rm -rf /var/lib/apt/lists/*
 
 ENV CC riscv64-linux-gnu-gcc -isystem /usr/local/include
@@ -67,6 +70,15 @@ RUN curl -sSL https://ftl.pi-hole.net/libraries/nettle-${nettleversion}.tar.gz |
     && make -j $(nproc) install \
     && cd .. \
     && rm -r nettle-${nettleversion}
+
+# Build static mbedTLS with pthread support
+RUN curl -sSL https://ftl.pi-hole.net/libraries/mbedtls-${mbedtlsversion}.tar.gz | tar -xz \
+    && cd mbedtls-${mbedtlsversion} \
+    && sed -i '/#define MBEDTLS_THREADING_C/s*^//**g' include/mbedtls/mbedtls_config.h \
+    && sed -i '/#define MBEDTLS_THREADING_PTHREAD/s*^//**g' include/mbedtls/mbedtls_config.h \
+    && make -j $(nproc) install \
+    && cd .. \
+    && rm -r mbedtls-${mbedtlsversion}
 
 FROM builder AS tester
 

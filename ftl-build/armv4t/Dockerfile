@@ -5,6 +5,7 @@ ARG idnversion=1.41
 ARG readlineversion=8.1
 ARG termcapversion=1.3.1
 ARG nettleversion=3.8.1
+ARG mbedtlsversion=3.4.0
 
 RUN dpkg --add-architecture armel \
     && apt-get update \
@@ -30,6 +31,8 @@ RUN dpkg --add-architecture armel \
         libc6:armel \
         xxd \
         jq \
+        perl \
+        python3 \
     && rm -rf /var/lib/apt/lists/*
 
 # Github actions/Checkout@v2 requires git >=2.18 else it will fall back to github API to download tarball
@@ -75,6 +78,15 @@ RUN curl -sSL https://ftl.pi-hole.net/libraries/nettle-${nettleversion}.tar.gz |
     && make -j $(nproc) install \
     && cd .. \
     && rm -r nettle-${nettleversion}
+
+# Build static mbedTLS with pthread support
+RUN curl -sSL https://ftl.pi-hole.net/libraries/mbedtls-${mbedtlsversion}.tar.gz | tar -xz \
+    && cd mbedtls-${mbedtlsversion} \
+    && sed -i '/#define MBEDTLS_THREADING_C/s*^//**g' include/mbedtls/mbedtls_config.h \
+    && sed -i '/#define MBEDTLS_THREADING_PTHREAD/s*^//**g' include/mbedtls/mbedtls_config.h \
+    && make -j $(nproc) install \
+    && cd .. \
+    && rm -r mbedtls-${mbedtlsversion}
 
 FROM builder AS tester
 

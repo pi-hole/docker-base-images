@@ -7,6 +7,12 @@ ARG termcapversion=1.3.1
 ARG nettleversion=3.8.1
 ARG mbedtlsversion=3.4.0
 
+# Switch repositories to the archive server
+RUN sed -i 's/deb.debian.org/archive.debian.org/g' /etc/apt/sources.list \
+    && sed -i 's/security.debian.org/archive.debian.org/g' /etc/apt/sources.list \
+    && sed -i '/stretch-updates/d' /etc/apt/sources.list \
+    && echo 'Acquire::Check-Valid-Until "false";' > /etc/apt/apt.conf.d/99no-check-valid-until
+
 RUN dpkg --add-architecture armel \
     && apt-get update \
     && apt-get install --no-install-recommends -y \
@@ -37,7 +43,7 @@ RUN dpkg --add-architecture armel \
 
 # Github actions/Checkout@v2 requires git >=2.18 else it will fall back to github API to download tarball
 # stretch-backports also has dnsutils 9.11.5, which has support for +unknown (See https://github.com/pi-hole/FTL/pull/1223#discussion_r731148277)
-RUN echo "deb http://deb.debian.org/debian stretch-backports main contrib non-free" >> /etc/apt/sources.list \
+RUN echo "deb http://archive.debian.org/debian stretch-backports main contrib non-free" >> /etc/apt/sources.list \
     && apt-get update \
     && apt-get -t stretch-backports install --no-install-recommends -y \
         git \

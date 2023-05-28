@@ -3,7 +3,7 @@ FROM debian:buster AS builder
 ARG idnversion=1.41
 ARG readlineversion=8.1
 ARG termcapversion=1.3.1
-ARG nettleversion=3.8.1
+ARG nettleversion=3.9
 ARG libmnlversion=1.0.5
 ARG libnftnlversion=1.2.3
 ARG nftablesversion=1.0.5

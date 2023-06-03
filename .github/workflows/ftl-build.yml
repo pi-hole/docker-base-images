@@ -19,7 +19,8 @@ on:
     - cron: "30 1 * * 0"
 
 env:
-  REGISTRY_IMAGE: pihole/ftl-build
+  DOCKER_REGISTRY_IMAGE: ${{ secrets.DOCKERHUB_NAMESPACE }}/ftl-build
+  GITHUB_REGISTRY_IMAGE: ghcr.io/${{ github.repository_owner }}/ftl-build
 
 jobs:
   build-and-test:
@@ -60,14 +61,14 @@ jobs:
         name: Checkout Repo
         uses: actions/checkout@v3
       -
-        name: Docker meta
+        name: Docker meta (Docker Hub and GitHub Container Registry)
         id: meta
         uses: docker/metadata-action@v4
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           images: |
-            ${{ env.REGISTRY_IMAGE }},enable=${{ github.event_name != 'pull_request' && github.event_name != 'workflow_dispatch' }}
-            ghcr.io/${{ env.REGISTRY_IMAGE }},enable=${{ github.event_name != 'pull_request' && github.event_name != 'workflow_dispatch' }}
+            ${{ env.DOCKER_REGISTRY_IMAGE }},enable=${{ github.event_name != 'pull_request' && github.event_name != 'workflow_dispatch' }}
+            ${{ env.GITHUB_REGISTRY_IMAGE }},enable=${{ github.event_name != 'pull_request' && github.event_name != 'workflow_dispatch' }}
             foo/bar,enable=${{ github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' }}
       -
         name: Login to DockerHub
@@ -107,8 +108,8 @@ jobs:
           build-args: |
             CONTAINER=${{ matrix.container }}
       -
-        name: Push builder target and push by digest
-        id: build
+        name: Push builder target and push by digest (Docker Hub)
+        id: build_docker
         uses: docker/build-push-action@v3
         with:
           context: ftl-build/${{ startsWith(matrix.container, 'alpine') && 'alpine' || 'debian' }}
@@ -118,13 +119,31 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             CONTAINER=${{ matrix.container }}
-          outputs: type=image,name=${{ env.REGISTRY_IMAGE }},push-by-digest=true,name-canonical=true,push=true
+          outputs: |
+            type=image,name=${{ env.DOCKER_REGISTRY_IMAGE }},push-by-digest=true,name-canonical=true,push=true
       -
-        name: Export digest
+        name: Push builder target and push by digest (GitHub Container Registry)
+        id: build_ghcr
+        uses: docker/build-push-action@v3
+        with:
+          context: ftl-build/${{ startsWith(matrix.container, 'alpine') && 'alpine' || 'debian' }}
+          platforms: ${{ matrix.platform }}
+          push: ${{ github.event_name != 'pull_request' && github.event_name != 'workflow_dispatch' }}
+          target: builder
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            CONTAINER=${{ matrix.container }}
+          outputs: |
+            type=image,name=${{ env.GITHUB_REGISTRY_IMAGE }},push-by-digest=true,name-canonical=true,push=true
+      -
+        name: Export digests
         run: |
-          mkdir -p /tmp/digests
-          digest="${{ steps.build.outputs.digest }}"
-          touch "/tmp/digests/${digest#sha256:}"
+          mkdir -p /tmp/digests/dockerhub
+          mkdir -p /tmp/digests/ghcr
+          digest_docker="${{ steps.build_docker.outputs.digest }}"
+          touch "/tmp/digests/dockerhub/${digest_docker#sha256:}"
+          digest_ghcr="${{ steps.build_ghcr.outputs.digest }}"
+          touch "/tmp/digests/ghcr/${digest_ghcr#sha256:}"
       -
         name: Upload digest
         uses: actions/upload-artifact@v3
@@ -152,13 +171,12 @@ jobs:
         name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
       -
-        name: Docker meta
-        id: meta
+        name: Docker meta (Docker Hub)
+        id: meta_docker
         uses: docker/metadata-action@v4
         with:
           images: |
-            ${{ env.REGISTRY_IMAGE }},enable=${{ github.event_name != 'pull_request' }}
-            ghcr.io/${{ env.REGISTRY_IMAGE }},enable=${{ github.event_name != 'pull_request' }}
+            ${{ env.DOCKER_REGISTRY_IMAGE }},enable=${{ github.event_name != 'pull_request' && github.event_name != 'workflow_dispatch' }}
             foo/bar,enable=${{ github.event_name == 'pull_request' }}
           # We want to tag the image with the latest tag if the workflow was triggered by a tag
           flavor: |
@@ -179,20 +197,49 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USER }}
           password: ${{ secrets.DOCKERHUB_PASS }}
       -
+        name: Create manifest list and push to Docker hub
+        working-directory: /tmp/digests/dockerhub
+        run: |
+          docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
+            $(printf '${{ env.DOCKER_REGISTRY_IMAGE }}@sha256:%s ' *)
+      -
+        name: Inspect image (Docker hub)
+        run: |
+          docker buildx imagetools inspect ${{ env.DOCKER_REGISTRY_IMAGE }}:${{ steps.meta_docker.outputs.version }}
+      -
+        name: Docker meta (Github Container Registry)
+        id: meta_ghcr
+        uses: docker/metadata-action@v4
+        with:
+          images: |
+            ${{ env.GITHUB_REGISTRY_IMAGE }},enable=${{ github.event_name != 'pull_request' && github.event_name != 'workflow_dispatch' }}
+            foo/bar,enable=${{ github.event_name == 'pull_request' }}
+          # We want to tag the image with the latest tag if the workflow was triggered by a tag
+          flavor: |
+            latest=${{ startsWith(github.ref, 'refs/tags/') }}
+          # tags:
+            # type=schedule means that a tag is applied when the workflow is triggered by a schedule event
+            # type=ref,event=branch means that a tag is applied when the workflow is triggered by a push to a branch
+            # type=ref,event=tag means that a tag is applied when the workflow is triggered by a push to a tag
+          tags: |
+            type=schedule,enable=${{ github.event_name == 'schedule' }}
+            type=ref,event=branch,enable=${{ github.event_name != 'schedule' }}
+            type=ref,event=tag
+      -
         name: Login to GitHub Container Registry
-        if: github.event_name != 'pull_request'
+        if: github.event_name != 'pull_request' && github.event_name != 'workflow_dispatch'
         uses: docker/login-action@v2
         with:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
       -
-        name: Create manifest list and push
-        working-directory: /tmp/digests
+        name: Create manifest list and push to Github container repository
+        working-directory: /tmp/digests/ghcr
         run: |
           docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
-            $(printf '${{ env.REGISTRY_IMAGE }}@sha256:%s ' *)
+            $(printf '${{ env.GITHUB_REGISTRY_IMAGE }}@sha256:%s ' *)
       -
-        name: Inspect image
+        name: Inspect image (Github container repository)
         run: |
-          docker buildx imagetools inspect ${{ env.REGISTRY_IMAGE }}:${{ steps.meta.outputs.version }}
+          docker buildx imagetools inspect ${{ env.GITHUB_REGISTRY_IMAGE }}:${{ steps.meta_ghcr.outputs.version }}

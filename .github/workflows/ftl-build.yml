@@ -18,8 +18,11 @@ on:
     # 1:30am UTC every Sunday, has no particular significance
     - cron: "30 1 * * 0"
 
+env:
+  REGISTRY_IMAGE: pihole/ftl-build
+
 jobs:
-  build:
+  build-and-test:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -63,15 +66,9 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           images: |
-            ${{ secrets.DOCKERHUB_NAMESPACE }}/ftl-build,enable=${{ github.event_name != 'pull_request' && github.event_name != 'workflow_dispatch' }}
-            ghcr.io/${{ github.repository_owner }}/ftl-build,enable=${{ github.event_name != 'pull_request' && github.event_name != 'workflow_dispatch' }}
+            ${{ env.REGISTRY_IMAGE }},enable=${{ github.event_name != 'pull_request' && github.event_name != 'workflow_dispatch' }}
+            ghcr.io/${{ env.REGISTRY_IMAGE }},enable=${{ github.event_name != 'pull_request' && github.event_name != 'workflow_dispatch' }}
             foo/bar,enable=${{ github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' }}
-          flavor: |
-            latest=${{ startsWith(github.ref, 'refs/tags/') }}
-          tags: |
-            type=schedule
-            type=ref,event=branch,enable=${{ github.event_name != 'schedule' }}
-            type=ref,event=tag
       -
         name: Login to DockerHub
         if: github.event_name != 'pull_request' && github.event_name != 'workflow_dispatch'
@@ -87,13 +84,13 @@ jobs:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
-#      -
-#        # Add support for more platforms with QEMU (optional)
-#        # https://github.com/docker/setup-qemu-action
-#        name: Set up QEMU
-#        uses: docker/setup-qemu-action@v2
-#        with:
-#          platforms: all
+      -
+        # Add support for more platforms with QEMU (optional)
+        # https://github.com/docker/setup-qemu-action
+        name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+        with:
+          platforms: all
       -
         name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
@@ -105,19 +102,97 @@ jobs:
           platforms: ${{ matrix.platform }}
           push: false
           target: tester
-#          tags: ${{ steps.meta.outputs.tags }}
-#          labels: ${{ steps.meta.outputs.labels }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             CONTAINER=${{ matrix.container }}
       -
-        name: Push builder target
+        name: Push builder target and push by digest
+        id: build
         uses: docker/build-push-action@v3
         with:
           context: ftl-build/${{ startsWith(matrix.container, 'alpine') && 'alpine' || 'debian' }}
           platforms: ${{ matrix.platform }}
           push: ${{ github.event_name != 'pull_request' && github.event_name != 'workflow_dispatch' }}
           target: builder
-          tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             CONTAINER=${{ matrix.container }}
+          outputs: type=image,name=${{ env.REGISTRY_IMAGE }},push-by-digest=true,name-canonical=true,push=true
+      -
+        name: Export digest
+        run: |
+          mkdir -p /tmp/digests
+          digest="${{ steps.build.outputs.digest }}"
+          touch "/tmp/digests/${digest#sha256:}"
+      -
+        name: Upload digest
+        uses: actions/upload-artifact@v3
+        with:
+          name: digests
+          path: /tmp/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  # Merge all the digests into a single file
+  # If we would push immediately above, the individual runners would overwrite each other's images
+  # https://docs.docker.com/build/ci/github-actions/multi-platform/#distribute-build-across-multiple-runners
+  merge-and-deploy:
+    runs-on: ubuntu-latest
+    needs:
+      - build-and-test
+    steps:
+      -
+        name: Download digests
+        uses: actions/download-artifact@v3
+        with:
+          name: digests
+          path: /tmp/digests
+      -
+        name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      -
+        name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: |
+            ${{ env.REGISTRY_IMAGE }},enable=${{ github.event_name != 'pull_request' }}
+            ghcr.io/${{ env.REGISTRY_IMAGE }},enable=${{ github.event_name != 'pull_request' }}
+            foo/bar,enable=${{ github.event_name == 'pull_request' }}
+          # We want to tag the image with the latest tag if the workflow was triggered by a tag
+          flavor: |
+            latest=${{ startsWith(github.ref, 'refs/tags/') }}
+          # tags:
+            # type=schedule means that a tag is applied when the workflow is triggered by a schedule event
+            # type=ref,event=branch means that a tag is applied when the workflow is triggered by a push to a branch
+            # type=ref,event=tag means that a tag is applied when the workflow is triggered by a push to a tag
+          tags: |
+            type=schedule,enable=${{ github.event_name == 'schedule' }}
+            type=ref,event=branch,enable=${{ github.event_name != 'schedule' }}
+            type=ref,event=tag
+      -
+        name: Login to DockerHub
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USER }}
+          password: ${{ secrets.DOCKERHUB_PASS }}
+      -
+        name: Login to GitHub Container Registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      -
+        name: Create manifest list and push
+        working-directory: /tmp/digests
+        run: |
+          docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
+            $(printf '${{ env.REGISTRY_IMAGE }}@sha256:%s ' *)
+      -
+        name: Inspect image
+        run: |
+          docker buildx imagetools inspect ${{ env.REGISTRY_IMAGE }}:${{ steps.meta.outputs.version }}

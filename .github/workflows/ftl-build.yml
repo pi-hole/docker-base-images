@@ -37,6 +37,8 @@ jobs:
             container: debian:stretch-slim
           - platform: linux/arm/v6
             container: debian:stretch-slim
+          - platform: linux/arm/v6
+            container: alpine:3.18
           - platform: linux/arm/v7
             container: alpine:3.18
           - platform: linux/arm64/v8
@@ -72,6 +74,8 @@ jobs:
             ${{ env.DOCKER_REGISTRY_IMAGE }},enable=${{ github.event_name != 'pull_request' && github.event_name != 'workflow_dispatch' }}
             ${{ env.GITHUB_REGISTRY_IMAGE }},enable=${{ github.event_name != 'pull_request' && github.event_name != 'workflow_dispatch' }}
             foo/bar,enable=${{ github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' }}
+          tags: |
+            type=ref,event=branch,suffix=-${{ startsWith(matrix.container, 'alpine') && 'alpine' || 'debian' }},enable=${{ github.event_name != 'schedule' }}
       -
         name: Login to DockerHub
         if: github.event_name != 'pull_request' && github.event_name != 'workflow_dispatch'

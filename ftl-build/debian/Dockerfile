@@ -1,4 +1,5 @@
-ARG CONTAINER="alpine:edge"
+# This container currently defaults to stretch as there is no linux/arm/v5 image for buster
+ARG CONTAINER="debian:stretch-slim"
 FROM ${CONTAINER} AS builder
 
 ARG idnversion=1.41
@@ -7,39 +8,36 @@ ARG termcapversion=1.3.1
 ARG nettleversion=3.9
 ARG mbedtlsversion=3.4.0
 
-RUN apk add --no-cache \
-        alpine-sdk \
-        bash \
-        bind-tools \
+# Switch repositories to the archive server
+RUN sed -i 's/deb.debian.org/archive.debian.org/g' /etc/apt/sources.list \
+    && sed -i 's/security.debian.org/archive.debian.org/g' /etc/apt/sources.list \
+    && sed -i '/stretch-updates/d' /etc/apt/sources.list \
+    && echo 'Acquire::Check-Valid-Until "false";' > /etc/apt/apt.conf.d/99no-check-valid-until
+
+RUN apt-get update \
+    && apt-get install --no-install-recommends -y \
+        ca-certificates \
         curl \
-        gmp-dev \
-        libcap \
-        linux-headers \
-        openssh-client \
-        shadow \
-        sqlite \
+        file \
+        build-essential \
+        m4 \
+        libgmp-dev \
+        libcap-dev \
+        libcap2-bin \
+        make \
+        netcat-traditional \
+        ssh \
+        wget \
         binutils \
         cmake \
         xxd \
         jq \
-        m4 \
+        git \
         python3 \
-        py3-yaml \
-        zip \
-        py3-requests \
-        perl
+    && rm -rf /var/lib/apt/lists/*
 
-# Install pdns from community repo
-RUN echo "@community http://dl-cdn.alpinelinux.org/alpine/v${ALPINE_VER}/community" >> /etc/apk/repositories; \
-    apk update; \
-    apk add --no-cache \
-    pdns \
-    pdns-backend-sqlite3 \
-    pdns-recursor \
-    pdns-doc
-
-ENV STATIC true
-ENV TEST true
+#We cannot test as we do powerdns packages for Debian != amd64
+ENV TEST false
 
 RUN curl -sSL https://ftl.pi-hole.net/libraries/libidn-${idnversion}.tar.gz | tar -xz \
     && cd libidn-${idnversion} \
@@ -66,12 +64,16 @@ RUN curl -sSL https://ftl.pi-hole.net/libraries/readline-${readlineversion}.tar.
     && cd .. \
     && rm -r readline-${readlineversion}
 
+# --disable-assembler is required for building armv4T binaries (otherwise, the
+# aes and sha components will be armv6 forcing the entire library to be armv6)
+# This is not relevant for Pi-hole as we are not using AES in FTL and SHA can
+# be provided by software
 RUN curl -sSL https://ftl.pi-hole.net/libraries/nettle-${nettleversion}.tar.gz | tar -xz \
     && cd nettle-${nettleversion} \
-    && ./configure --enable-static --disable-shared --disable-openssl --disable-mini-gmp -disable-gcov --disable-documentation \
+    && ./configure --enable-static --disable-shared --disable-openssl --disable-mini-gmp -disable-gcov --disable-documentation --disable-assembler \
     && make -j $(nproc) install \
     && cd .. \
-    && rm -r nettle-${nettleversion}
+    && rm -rf nettle-${nettleversion}
 
 # Build static mbedTLS with pthread support
 RUN curl -sSL https://ftl.pi-hole.net/libraries/mbedtls-${mbedtlsversion}.tar.gz | tar -xz \
@@ -80,7 +82,7 @@ RUN curl -sSL https://ftl.pi-hole.net/libraries/mbedtls-${mbedtlsversion}.tar.gz
     && sed -i '/#define MBEDTLS_THREADING_PTHREAD/s*^//**g' include/mbedtls/mbedtls_config.h \
     && make -j $(nproc) install \
     && cd .. \
-    && rm -r mbedtls-${mbedtlsversion}
+    && rm -rf mbedtls-${mbedtlsversion}
 
 # Install bats-core directly into the build image
 RUN git clone https://github.com/bats-core/bats-core.git

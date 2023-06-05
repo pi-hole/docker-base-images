@@ -33,8 +33,10 @@ jobs:
             container: alpine:3.18
           - platform: linux/386
             container: alpine:3.18
+          - platform: linux/arm/v5
+            container: debian:stretch-slim
           - platform: linux/arm/v6
-            container: alpine:3.18
+            container: debian:stretch-slim
           - platform: linux/arm/v7
             container: alpine:3.18
           - platform: linux/arm64/v8

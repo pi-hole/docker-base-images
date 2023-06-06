@@ -36,7 +36,7 @@ jobs:
           - platform: linux/arm/v5
             container: debian:stretch-slim
           - platform: linux/arm/v6
-            container: debian:stretch-slim
+            container: debian:bullseye-slim
           - platform: linux/arm/v6
             container: alpine:3.18
           - platform: linux/arm/v7

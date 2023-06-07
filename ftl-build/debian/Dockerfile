@@ -2,6 +2,7 @@
 ARG CONTAINER="debian:bullseye-slim"
 FROM ${CONTAINER} AS builder
 
+ARG CONTAINER
 ARG idnversion=1.41
 ARG readlineversion=8.1
 ARG termcapversion=1.3.1
@@ -9,12 +10,12 @@ ARG nettleversion=3.9
 ARG mbedtlsversion=3.4.0
 
 # Switch repositories to the archive server
-RUN if [[ ${CONTAINER} == "debian:stretch"* ]]; then \
-       sed -i 's/deb.debian.org/archive.debian.org/g' /etc/apt/sources.list \
-    && sed -i 's/security.debian.org/archive.debian.org/g' /etc/apt/sources.list \
-    && sed -i '/stretch-updates/d' /etc/apt/sources.list \
-    && echo 'Acquire::Check-Valid-Until "false";' > /etc/apt/apt.conf.d/99no-check-valid-until \
-       ; fi
+RUN if [ "${CONTAINER}" = "debian:stretch-slim" ]; then \
+         sed -i 's/deb.debian.org/archive.debian.org/g' /etc/apt/sources.list \
+      && sed -i 's/security.debian.org/archive.debian.org/g' /etc/apt/sources.list \
+      && sed -i '/stretch-updates/d' /etc/apt/sources.list \
+      && echo 'Acquire::Check-Valid-Until "false";' > /etc/apt/apt.conf.d/99no-check-valid-until; \
+    fi
 
 RUN apt-get update \
     && apt-get install --no-install-recommends -y \

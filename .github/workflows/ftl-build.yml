@@ -45,22 +45,9 @@ jobs:
             container: alpine:3.18
           - platform: linux/riscv64
             container: alpine:edge
+    env:
+      context: ${{ startsWith(matrix.container, 'alpine') && 'alpine' || 'debian' }}
     steps:
-      -
-        name: Dump GitHub context
-        env:
-          GITHUB_CONTEXT: ${{ toJson(github) }}
-        run: echo "$GITHUB_CONTEXT"
-      -
-        name: Dump job context
-        env:
-          JOB_CONTEXT: ${{ toJson(job) }}
-        run: echo "$JOB_CONTEXT"
-      -
-        name: Dump matrix context
-        env:
-          MATRIX_CONTEXT: ${{ toJson(job) }}
-        run: echo "$MATRIX_CONTEXT"
       -
         name: Checkout Repo
         uses: actions/checkout@v3
@@ -75,7 +62,7 @@ jobs:
             ${{ env.GITHUB_REGISTRY_IMAGE }},enable=${{ github.event_name != 'pull_request' && github.event_name != 'workflow_dispatch' }}
             foo/bar,enable=${{ github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' }}
           tags: |
-            type=ref,event=branch,suffix=-${{ startsWith(matrix.container, 'alpine') && 'alpine' || 'debian' }},enable=${{ github.event_name != 'schedule' }}
+            type=ref,event=branch,enable=${{ github.event_name != 'schedule' }}
       -
         name: Login to DockerHub
         if: github.event_name != 'pull_request' && github.event_name != 'workflow_dispatch'
@@ -105,7 +92,7 @@ jobs:
         name: Build container and test-compile FTL
         uses: docker/build-push-action@v3
         with:
-          context: ftl-build/${{ startsWith(matrix.container, 'alpine') && 'alpine' || 'debian' }}
+          context: ftl-build/${{ env.context }}
           platforms: ${{ matrix.platform }}
           push: false
           target: tester
@@ -118,7 +105,7 @@ jobs:
         id: build_docker
         uses: docker/build-push-action@v3
         with:
-          context: ftl-build/${{ startsWith(matrix.container, 'alpine') && 'alpine' || 'debian' }}
+          context: ftl-build/${{ env.context }}
           platforms: ${{ matrix.platform }}
           push: ${{ github.event_name != 'pull_request' && github.event_name != 'workflow_dispatch' }}
           target: builder
@@ -132,7 +119,7 @@ jobs:
         id: build_ghcr
         uses: docker/build-push-action@v3
         with:
-          context: ftl-build/${{ startsWith(matrix.container, 'alpine') && 'alpine' || 'debian' }}
+          context: ftl-build/${{ env.context }}
           platforms: ${{ matrix.platform }}
           push: ${{ github.event_name != 'pull_request' && github.event_name != 'workflow_dispatch' }}
           target: builder
@@ -144,12 +131,12 @@ jobs:
       -
         name: Export digests
         run: |
-          mkdir -p /tmp/digests/dockerhub
-          mkdir -p /tmp/digests/ghcr
+          mkdir -p /tmp/digests/dockerhub/${{ env.context }}
+          mkdir -p /tmp/digests/ghcr/${{ env.context }}
           digest_docker="${{ steps.build_docker.outputs.digest }}"
-          touch "/tmp/digests/dockerhub/${digest_docker#sha256:}"
+          touch "/tmp/digests/dockerhub/${{ env.context }}/${digest_docker#sha256:}"
           digest_ghcr="${{ steps.build_ghcr.outputs.digest }}"
-          touch "/tmp/digests/ghcr/${digest_ghcr#sha256:}"
+          touch "/tmp/digests/ghcr/${{ env.context }}/${digest_ghcr#sha256:}"
       -
         name: Upload digest
         uses: actions/upload-artifact@v3
@@ -168,6 +155,9 @@ jobs:
       - build-and-test
     steps:
       -
+        name: Checkout Repo
+        uses: actions/checkout@v3
+      -
         name: Download digests
         uses: actions/download-artifact@v3
         with:
@@ -177,75 +167,38 @@ jobs:
         name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
       -
-        name: Docker meta (Docker Hub)
-        id: meta_docker
-        uses: docker/metadata-action@v4
+        name: Collect and push (Alpine, Docker Hub)
+        uses: ./.github/actions/merge-and-push
         with:
-          images: |
-            ${{ env.DOCKER_REGISTRY_IMAGE }},enable=${{ github.event_name != 'pull_request' && github.event_name != 'workflow_dispatch' }}
-            foo/bar,enable=${{ github.event_name == 'pull_request' }}
-          # We want to tag the image with the latest tag if the workflow was triggered by a tag
-          flavor: |
-            latest=${{ startsWith(github.ref, 'refs/tags/') }}
-          # tags:
-            # type=schedule means that a tag is applied when the workflow is triggered by a schedule event
-            # type=ref,event=branch means that a tag is applied when the workflow is triggered by a push to a branch
-            # type=ref,event=tag means that a tag is applied when the workflow is triggered by a push to a tag
-          tags: |
-            type=schedule,enable=${{ github.event_name == 'schedule' }}
-            type=ref,event=branch,enable=${{ github.event_name != 'schedule' }}
-            type=ref,event=tag
-      -
-        name: Login to DockerHub
-        if: github.event_name != 'pull_request'
-        uses: docker/login-action@v2
-        with:
+          imagename: ${{ env.DOCKER_REGISTRY_IMAGE }}
           username: ${{ secrets.DOCKERHUB_USER }}
           password: ${{ secrets.DOCKERHUB_PASS }}
+          platform: alpine
+          registry: docker.io
       -
-        name: Create manifest list and push to Docker hub
-        working-directory: /tmp/digests/dockerhub
-        run: |
-          docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
-            $(printf '${{ env.DOCKER_REGISTRY_IMAGE }}@sha256:%s ' *)
-      -
-        name: Inspect image (Docker hub)
-        run: |
-          docker buildx imagetools inspect ${{ env.DOCKER_REGISTRY_IMAGE }}:${{ steps.meta_docker.outputs.version }}
-      -
-        name: Docker meta (Github Container Registry)
-        id: meta_ghcr
-        uses: docker/metadata-action@v4
+        name: Collect and push (Debian, Docker Hub)
+        uses: ./.github/actions/merge-and-push
         with:
-          images: |
-            ${{ env.GITHUB_REGISTRY_IMAGE }},enable=${{ github.event_name != 'pull_request' && github.event_name != 'workflow_dispatch' }}
-            foo/bar,enable=${{ github.event_name == 'pull_request' }}
-          # We want to tag the image with the latest tag if the workflow was triggered by a tag
-          flavor: |
-            latest=${{ startsWith(github.ref, 'refs/tags/') }}
-          # tags:
-            # type=schedule means that a tag is applied when the workflow is triggered by a schedule event
-            # type=ref,event=branch means that a tag is applied when the workflow is triggered by a push to a branch
-            # type=ref,event=tag means that a tag is applied when the workflow is triggered by a push to a tag
-          tags: |
-            type=schedule,enable=${{ github.event_name == 'schedule' }}
-            type=ref,event=branch,enable=${{ github.event_name != 'schedule' }}
-            type=ref,event=tag
+          imagename: ${{ env.DOCKER_REGISTRY_IMAGE }}
+          username: ${{ secrets.DOCKERHUB_USER }}
+          password: ${{ secrets.DOCKERHUB_PASS }}
+          platform: debian
+          registry: docker.io
       -
-        name: Login to GitHub Container Registry
-        if: github.event_name != 'pull_request' && github.event_name != 'workflow_dispatch'
-        uses: docker/login-action@v2
+        name: Collect and push (Alpine, GitHub Container Registry)
+        uses: ./.github/actions/merge-and-push
         with:
-          registry: ghcr.io
+          imagename: ${{ env.GITHUB_REGISTRY_IMAGE }}
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
+          platform: alpine
+          registry: ghcr.io
       -
-        name: Create manifest list and push to Github container repository
-        working-directory: /tmp/digests/ghcr
-        run: |
-          docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
-            $(printf '${{ env.GITHUB_REGISTRY_IMAGE }}@sha256:%s ' *)
-      -
-        name: Inspect image (Github container repository)
-        run: |
-          docker buildx imagetools inspect ${{ env.GITHUB_REGISTRY_IMAGE }}:${{ steps.meta_ghcr.outputs.version }}
+        name: Collect and push (Debian, GitHub Container Registry)
+        uses: ./.github/actions/merge-and-push
+        with:
+          imagename: ${{ env.GITHUB_REGISTRY_IMAGE }}
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+          platform: debian
+          registry: ghcr.io

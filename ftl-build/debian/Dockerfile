@@ -109,6 +109,7 @@ RUN git clone https://github.com/pi-hole/FTL.git --branch "${GIT_BRANCH}" \
     && bash build.sh "-DSTATIC=${STATIC}" \
     && readelf -A ./pihole-FTL \
     && readelf -l ./pihole-FTL \
+    && ldd -r -v ./pihole-FTL \
     && bash test/arch_test.sh \
     && bash test/run.sh \
     && cd .. \

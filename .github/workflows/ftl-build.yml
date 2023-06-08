@@ -64,20 +64,13 @@ jobs:
           tags: |
             type=ref,event=branch,enable=${{ github.event_name != 'schedule' }}
       -
-        name: Login to DockerHub
-        if: github.event_name != 'pull_request' && github.event_name != 'workflow_dispatch'
-        uses: docker/login-action@v2
+        name: Login to DockerHub and GitHub Container Registry
+        uses: ./.github/actions/login-repo
         with:
-          username: ${{ secrets.DOCKERHUB_USER }}
-          password: ${{ secrets.DOCKERHUB_PASS }}
-      -
-        name: Login to GitHub Container Registry
-        if: github.event_name != 'pull_request' && github.event_name != 'workflow_dispatch'
-        uses: docker/login-action@v2
-        with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          docker_username: ${{ secrets.DOCKERHUB_USER }}
+          docker_password: ${{ secrets.DOCKERHUB_PASS }}
+          ghcr_username: ${{ github.repository_owner }}
+          ghcr_password: ${{ secrets.GITHUB_TOKEN }}
       -
         # Add support for more platforms with QEMU (optional)
         # https://github.com/docker/setup-qemu-action
@@ -167,38 +160,34 @@ jobs:
         name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
       -
+        name: Login to DockerHub and GitHub Container Registry
+        uses: ./.github/actions/login-repo
+        with:
+          docker_username: ${{ secrets.DOCKERHUB_USER }}
+          docker_password: ${{ secrets.DOCKERHUB_PASS }}
+          ghcr_username: ${{ github.repository_owner }}
+          ghcr_password: ${{ secrets.GITHUB_TOKEN }}
+      -
         name: Collect and push (Alpine, Docker Hub)
         uses: ./.github/actions/merge-and-push
         with:
           imagename: ${{ env.DOCKER_REGISTRY_IMAGE }}
-          username: ${{ secrets.DOCKERHUB_USER }}
-          password: ${{ secrets.DOCKERHUB_PASS }}
           platform: alpine
-          registry: docker.io
       -
         name: Collect and push (Debian, Docker Hub)
         uses: ./.github/actions/merge-and-push
         with:
           imagename: ${{ env.DOCKER_REGISTRY_IMAGE }}
-          username: ${{ secrets.DOCKERHUB_USER }}
-          password: ${{ secrets.DOCKERHUB_PASS }}
           platform: debian
-          registry: docker.io
       -
         name: Collect and push (Alpine, GitHub Container Registry)
         uses: ./.github/actions/merge-and-push
         with:
           imagename: ${{ env.GITHUB_REGISTRY_IMAGE }}
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
           platform: alpine
-          registry: ghcr.io
       -
         name: Collect and push (Debian, GitHub Container Registry)
         uses: ./.github/actions/merge-and-push
         with:
           imagename: ${{ env.GITHUB_REGISTRY_IMAGE }}
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
           platform: debian
-          registry: ghcr.io

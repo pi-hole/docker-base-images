@@ -36,6 +36,7 @@ RUN apt-get update \
         netcat-openbsd \
         lighttpd-mod-openssl \
         logrotate \
+        binutils \
     && rm -rf /var/lib/apt/lists/*
 
 # curl in armhf-buster's image has SSL issues. Running c_rehash fixes it.

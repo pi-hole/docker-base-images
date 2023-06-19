@@ -37,6 +37,8 @@ jobs:
             container: debian:stretch-slim
           - platform: linux/arm/v6
             container: debian:bullseye-slim
+          - platform: linux/arm/v5
+            container: qnib/alpine-armv5:3.16
           - platform: linux/arm/v6
             container: alpine:3.18
           - platform: linux/arm/v7
@@ -46,7 +48,7 @@ jobs:
           - platform: linux/riscv64
             container: alpine:edge
     env:
-      context: ${{ startsWith(matrix.container, 'alpine') && 'alpine' || 'debian' }}
+      context: ${{ startsWith(matrix.container, 'alpine') && 'alpine' || startsWith(matrix.container, 'qnib') && 'alpine' || 'debian' }}
     steps:
       -
         name: Checkout Repo

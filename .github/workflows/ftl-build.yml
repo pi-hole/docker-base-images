@@ -62,7 +62,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       -
         name: Build
-        uses: docker/build-push-action@v3
+        uses: docker/build-push-action@v4
         with:
           context: ftl-build/${{ matrix.ARCH }}/.
           push: false
@@ -75,7 +75,7 @@ jobs:
       -
         name: Build (all-in)
         if: matrix.ARCH == 'x86_64'
-        uses: docker/build-push-action@v3
+        uses: docker/build-push-action@v4
         with:
           context: ftl-build/${{ matrix.ARCH }}/.
           push: false
@@ -85,7 +85,7 @@ jobs:
       -
         name: Push
         if: github.event_name != 'pull_request'
-        uses: docker/build-push-action@v3
+        uses: docker/build-push-action@v4
         with:
           context: ftl-build/${{ matrix.ARCH }}/.
           push: true

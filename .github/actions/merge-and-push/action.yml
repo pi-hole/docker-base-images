@@ -18,8 +18,7 @@ runs:
       uses: docker/metadata-action@v4
       with:
         images: |
-          ${{ inputs.imagename }},enable=${{ github.event_name != 'pull_request' && github.event_name != 'workflow_dispatch' }}
-          foo/bar,enable=${{ github.event_name == 'pull_request' }}
+          ${{ inputs.imagename }},enable=${{ github.event_name != 'workflow_dispatch' }}
         # We want to tag the image with the latest tag if the workflow was triggered by a tag
         flavor: |
           latest=${{ startsWith(github.ref, 'refs/tags/') }}

@@ -8,6 +8,9 @@ inputs:
   platform:
     required: true
     description: The platform to push the image for
+  registry:
+    required: true
+    description: The Registry to push the image to
 
 runs:
   using: "composite"
@@ -32,7 +35,7 @@ runs:
           type=ref,event=tag,suffix=-${{ inputs.platform }}
     -
       name: Create manifest list and push to repository
-      working-directory: /tmp/digests/dockerhub/${{ inputs.platform }}
+      working-directory: /tmp/digests/${{ inputs.registry }}/${{ inputs.platform }}
       # When using composite actions, you have to specify the shell. As you
       # don’t specify a runner type in composite actions, you need to specify
       # the shell instead for each action.

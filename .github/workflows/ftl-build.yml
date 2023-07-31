@@ -173,21 +173,25 @@ jobs:
         with:
           imagename: ${{ env.DOCKER_REGISTRY_IMAGE }}
           platform: alpine
+          registry: dockerhub
       -
         name: Collect and push (Debian, Docker Hub)
         uses: ./.github/actions/merge-and-push
         with:
           imagename: ${{ env.DOCKER_REGISTRY_IMAGE }}
           platform: debian
+          registry: dockerhub
       -
         name: Collect and push (Alpine, GitHub Container Registry)
         uses: ./.github/actions/merge-and-push
         with:
           imagename: ${{ env.GITHUB_REGISTRY_IMAGE }}
           platform: alpine
+          registry: ghcr
       -
         name: Collect and push (Debian, GitHub Container Registry)
         uses: ./.github/actions/merge-and-push
         with:
           imagename: ${{ env.GITHUB_REGISTRY_IMAGE }}
           platform: debian
+          registry: ghcr

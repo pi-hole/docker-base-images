@@ -1,54 +1,57 @@
-FROM debian:sid AS builder
+# This container currently defaults to stretch as there is no linux/arm/v5 image for buster
+ARG CONTAINER="debian:bullseye-slim"
+FROM ${CONTAINER} AS builder
 
+ARG CONTAINER
 ARG idnversion=1.41
 ARG readlineversion=8.1
 ARG termcapversion=1.3.1
 ARG nettleversion=3.9
 ARG mbedtlsversion=3.4.0
 
+# Switch repositories to the archive server
+RUN if [ "${CONTAINER}" = "debian:stretch-slim" ]; then \
+         sed -i 's/deb.debian.org/archive.debian.org/g' /etc/apt/sources.list \
+      && sed -i 's/security.debian.org/archive.debian.org/g' /etc/apt/sources.list \
+      && sed -i '/stretch-updates/d' /etc/apt/sources.list \
+      && echo 'Acquire::Check-Valid-Until "false";' > /etc/apt/apt.conf.d/99no-check-valid-until; \
+    fi
+
 RUN apt-get update \
-    && apt-get install --no-install-recommends -y ca-certificates debian-ports-archive-keyring \
-    && echo 'deb [arch=riscv64] https://deb.debian.org/debian-ports sid main' > /etc/apt/sources.list.d/riscv64.list \
-    && dpkg --add-architecture riscv64 \
-    && apt-get update \
     && apt-get install --no-install-recommends -y \
+        ca-certificates \
         curl \
         file \
         build-essential \
-        gcc-riscv64-linux-gnu \
-        libc6-dev-riscv64-cross \
-        libcap-dev:riscv64 \
+        m4 \
+        libgmp-dev \
+        libcap-dev \
         libcap2-bin \
         make \
         netcat-traditional \
-        m4 \
-        libgmp-dev:riscv64 \
         ssh \
-        sqlite3 \
         wget \
         binutils \
         cmake \
-        libc6-dev:riscv64 \
         xxd \
         jq \
         git \
-        dnsutils \
-        perl \
         python3 \
     && rm -rf /var/lib/apt/lists/*
 
-ENV CC riscv64-linux-gnu-gcc -isystem /usr/local/include
+#We cannot test as we do powerdns packages for Debian != amd64
+ENV TEST false
 
 RUN curl -sSL https://ftl.pi-hole.net/libraries/libidn-${idnversion}.tar.gz | tar -xz \
     && cd libidn-${idnversion} \
-    && ./configure --host=riscv64-linux-gnu --enable-static --disable-shared --disable-doc --disable-valgrind-tests \
+    && ./configure --enable-static --disable-shared --disable-doc --disable-valgrind-tests \
     && make -j $(nproc) install \
     && cd .. \
     && rm -r libidn-${idnversion}
 
 RUN curl -sSL https://ftl.pi-hole.net/libraries/termcap-${termcapversion}.tar.gz | tar -xz \
     && cd termcap-${termcapversion} \
-    && ./configure --host=riscv64-linux-gnu --enable-static --disable-shared --disable-doc --without-examples \
+    && ./configure --enable-static --disable-shared --disable-doc --without-examples \
     && make -j $(nproc) \
     && make install \
     && ls /usr/local/lib/ \
@@ -57,19 +60,23 @@ RUN curl -sSL https://ftl.pi-hole.net/libraries/termcap-${termcapversion}.tar.gz
 
 RUN curl -sSL https://ftl.pi-hole.net/libraries/readline-${readlineversion}.tar.gz | tar -xz \
     && cd readline-${readlineversion} \
-    && ./configure --host=riscv64-linux-gnu --enable-static --disable-shared --disable-install-examples \
+    && ./configure --enable-static --disable-shared --disable-install-examples \
     && make -j $(nproc) \
     && make install-static \
     && ls /usr/local/lib/ \
     && cd .. \
     && rm -r readline-${readlineversion}
 
+# --disable-assembler is required for building armv4T binaries (otherwise, the
+# aes and sha components will be armv6 forcing the entire library to be armv6)
+# This is not relevant for Pi-hole as we are not using AES in FTL and SHA can
+# be provided by software
 RUN curl -sSL https://ftl.pi-hole.net/libraries/nettle-${nettleversion}.tar.gz | tar -xz \
     && cd nettle-${nettleversion} \
-    && ./configure --host=riscv64-linux-gnu --enable-static --disable-shared --disable-documentation \
+    && ./configure --enable-static --disable-shared --disable-openssl --disable-mini-gmp -disable-gcov --disable-documentation --disable-assembler \
     && make -j $(nproc) install \
     && cd .. \
-    && rm -r nettle-${nettleversion}
+    && rm -rf nettle-${nettleversion}
 
 # Build static mbedTLS with pthread support
 RUN curl -sSL https://ftl.pi-hole.net/libraries/mbedtls-${mbedtlsversion}.tar.gz | tar -xz \
@@ -78,21 +85,32 @@ RUN curl -sSL https://ftl.pi-hole.net/libraries/mbedtls-${mbedtlsversion}.tar.gz
     && sed -i '/#define MBEDTLS_THREADING_PTHREAD/s*^//**g' include/mbedtls/mbedtls_config.h \
     && make -j $(nproc) install \
     && cd .. \
-    && rm -r mbedtls-${mbedtlsversion}
+    && rm -rf mbedtls-${mbedtlsversion}
+
+# Install bats-core directly into the build image
+RUN git clone https://github.com/bats-core/bats-core.git
+
+ENV BATS=/bats-core/bin/bats
 
 FROM builder AS tester
 
 # For FTL test compilation
-ARG CI_ARCH="riscv64"
+ARG TARGETPLATFORM
+ARG TARGETARCH
+ARG TARGETVARIANT
+ARG CI_ARCH="$TARGETPLATFORM"
 ARG GIT_TAG="test-build"
 ARG GIT_BRANCH="special/CI_development"
 
 # Test compile FTL's development branch, the result is removed from the final container
-# We accept errors in the test step to be able to update the arch_tests if a change is intended
-RUN git clone https://github.com/pi-hole/FTL.git \
+# Run the full test suite to ensure that the container is still capable of running the tests
+RUN git clone https://github.com/pi-hole/FTL.git --branch "${GIT_BRANCH}" \
     && cd FTL \
-    && git checkout "${GIT_BRANCH}" \
     && bash build.sh "-DSTATIC=${STATIC}" \
+    && readelf -A ./pihole-FTL \
+    && readelf -l ./pihole-FTL \
+    && ldd -r -v ./pihole-FTL \
     && bash test/arch_test.sh \
+    && bash test/run.sh \
     && cd .. \
     && rm -r FTL

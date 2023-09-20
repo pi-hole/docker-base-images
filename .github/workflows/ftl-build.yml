@@ -1,14 +1,11 @@
 name: ftl-build builds
 on:
+  pull_request:
+    paths:
+      - 'ftl-build/**'
+      - '.github/workflows/ftl-build.yml'
   push:
-    # Run on all branches and tags, but only if the ftl-build directory or the
-    # workflow itself changed. This is to avoid running the workflow on
-    # unrelated changes.
-    # Note that including the branch filter is necessary as otherwise (paths and tags alone),
-    # the workflow would not run on pushes to branches that do not have a tag sticked to them.
     tags:
-      - "**"
-    branches:
       - "**"
     paths:
       - 'ftl-build/**'

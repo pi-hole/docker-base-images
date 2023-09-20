@@ -95,6 +95,7 @@ jobs:
             CONTAINER=${{ matrix.container }}
       -
         name: Push builder target and push by digest (Docker Hub)
+        if: github.event_name != 'pull_request'
         id: build_docker
         uses: docker/build-push-action@v4
         with:
@@ -109,6 +110,7 @@ jobs:
             type=image,name=${{ env.DOCKER_REGISTRY_IMAGE }},push-by-digest=true,name-canonical=true,push=true
       -
         name: Push builder target and push by digest (GitHub Container Registry)
+        if: github.event_name != 'pull_request'
         id: build_ghcr
         uses: docker/build-push-action@v4
         with:
@@ -123,6 +125,7 @@ jobs:
             type=image,name=${{ env.GITHUB_REGISTRY_IMAGE }},push-by-digest=true,name-canonical=true,push=true
       -
         name: Export digests
+        if: github.event_name != 'pull_request'
         run: |
           mkdir -p /tmp/digests/dockerhub/${{ env.context }}
           mkdir -p /tmp/digests/ghcr/${{ env.context }}
@@ -132,6 +135,7 @@ jobs:
           touch "/tmp/digests/ghcr/${{ env.context }}/${digest_ghcr#sha256:}"
       -
         name: Upload digest
+        if: github.event_name != 'pull_request'
         uses: actions/upload-artifact@v3
         with:
           name: digests
@@ -143,6 +147,7 @@ jobs:
   # If we would push immediately above, the individual runners would overwrite each other's images
   # https://docs.docker.com/build/ci/github-actions/multi-platform/#distribute-build-across-multiple-runners
   merge-and-deploy:
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     needs:
       - build-and-test

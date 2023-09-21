@@ -62,6 +62,7 @@ jobs:
             type=ref,event=branch,enable=${{ github.event_name != 'schedule' }}
       -
         name: Login to DockerHub and GitHub Container Registry
+        if: github.event_name != 'pull_request'
         uses: ./.github/actions/login-repo
         with:
           docker_username: ${{ secrets.DOCKERHUB_USER }}

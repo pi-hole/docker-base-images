@@ -8,6 +8,7 @@ ARG readlineversion=8.1
 ARG termcapversion=1.3.1
 ARG nettleversion=3.9.1
 ARG mbedtlsversion=3.4.1
+ARG libunwindversion=1.6.2
 
 # Switch repositories to the archive server
 RUN if [ "${CONTAINER}" = "debian:stretch-slim" ]; then \
@@ -86,6 +87,14 @@ RUN curl -sSL https://ftl.pi-hole.net/libraries/mbedtls-${mbedtlsversion}.tar.gz
     && make -j $(nproc) install \
     && cd .. \
     && rm -rf mbedtls-${mbedtlsversion}
+
+# Build static libunwind
+RUN curl -sSL https://ftl.pi-hole.net/libraries/libunwind-${libunwindversion}.tar.gz | tar -xz \
+    && cd libunwind-${libunwindversion} \
+    && ./configure --enable-static --disable-shared --disable-tests --disable-documentation \
+    && make -j $(nproc) install \
+    && cd .. \
+    && rm -rf libunwind-${libunwindversion}
 
 # Install bats-core directly into the build image
 RUN git clone https://github.com/bats-core/bats-core.git

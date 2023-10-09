@@ -7,7 +7,6 @@ ARG readlineversion=8.1
 ARG termcapversion=1.3.1
 ARG nettleversion=3.9.1
 ARG mbedtlsversion=3.4.1
-ARG libunwindversion=1.6.2
 
 RUN apk add --no-cache \
         alpine-sdk \
@@ -29,6 +28,8 @@ RUN apk add --no-cache \
         py3-yaml \
         zip \
         py3-requests \
+        libunwind-static \
+        libunwind-dev \
         perl
 
 # Install pdns from community repo
@@ -83,22 +84,6 @@ RUN curl -sSL https://ftl.pi-hole.net/libraries/mbedtls-${mbedtlsversion}.tar.gz
     && make -j $(nproc) install \
     && cd .. \
     && rm -r mbedtls-${mbedtlsversion}
-
-# Build static libunwind (we cannot use the Alpine package because it depends on
-# xz and possibly other libraries)
-# If $TARGETPLATFORM is "linux/386", we need to build libunwind for
-# i586-linux-musl. This is necessary because otherwise, libunwind's configure
-# script fails to detect we are in a buildx environment and tries to built for
-# x86_64 which ultimately fails because several x86_64-specific registers are
-# not available in the i386 build environment.
-RUN if [ "$TARGETPLATFORM" != "linux/386" ]; then \
-       curl -sSL https://ftl.pi-hole.net/libraries/libunwind-${libunwindversion}.tar.gz | tar -xz \
-    && cd libunwind-${libunwindversion} \
-    && ./configure --enable-static --disable-shared --disable-tests --disable-documentation \
-    && make -j $(nproc) install \
-    && cd .. \
-    && rm -rf libunwind-${libunwindversion}; \
-    fi
 
 # Install bats-core directly into the build image
 RUN git clone https://github.com/bats-core/bats-core.git

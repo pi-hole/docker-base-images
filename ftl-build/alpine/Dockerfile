@@ -30,6 +30,7 @@ RUN apk add --no-cache \
         py3-requests \
         libunwind-static \
         libunwind-dev \
+        xz-static \
         perl
 
 # Install pdns from community repo

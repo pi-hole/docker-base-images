@@ -87,6 +87,14 @@ RUN curl -sSL https://ftl.pi-hole.net/libraries/mbedtls-${mbedtlsversion}.tar.gz
     && cd .. \
     && rm -rf mbedtls-${mbedtlsversion}
 
+# Build static libbacktrace
+RUN git clone https://github.com/ianlancetaylor/libbacktrace.git \
+    && cd libbacktrace \
+    && ./configure --enable-static --disable-shared \
+    && make -j $(nproc) install \
+    && cd .. \
+    && rm -r libbacktrace
+
 # Install bats-core directly into the build image
 RUN git clone https://github.com/bats-core/bats-core.git
 

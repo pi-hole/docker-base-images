@@ -1,6 +1,7 @@
 ARG CONTAINER="alpine:edge"
 FROM ${CONTAINER} AS builder
 
+ARG TARGETPLATFORM
 ARG idnversion=1.41
 ARG readlineversion=8.1
 ARG termcapversion=1.3.1
@@ -74,10 +75,16 @@ RUN curl -sSL https://ftl.pi-hole.net/libraries/nettle-${nettleversion}.tar.gz |
     && rm -r nettle-${nettleversion}
 
 # Build static mbedTLS with pthread support
+# Disable AESNI on linux/386 asit would possibly result in an incompatible
+# binary in processors lacking the AESNI and SSE2 instruction sets
 RUN curl -sSL https://ftl.pi-hole.net/libraries/mbedtls-${mbedtlsversion}.tar.gz | tar -xz \
     && cd mbedtls-${mbedtlsversion} \
     && sed -i '/#define MBEDTLS_THREADING_C/s*^//**g' include/mbedtls/mbedtls_config.h \
     && sed -i '/#define MBEDTLS_THREADING_PTHREAD/s*^//**g' include/mbedtls/mbedtls_config.h \
+    && ( [ "${TARGETPLATFORM}" = "linux/386" ] \
+         && echo "BUILDING WITHOUT AESNI SUPPORT" \
+         && sed -i '/#define MBEDTLS_AESNI_C/s*^*//*g' include/mbedtls/mbedtls_config.h \
+         || echo "BUILDING WITH AESNI SUPPORT" ) \
     && make -j $(nproc) install \
     && cd .. \
     && rm -r mbedtls-${mbedtlsversion}

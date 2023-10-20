@@ -31,10 +31,6 @@ jobs:
             container: alpine:3.18
           - platform: linux/386
             container: alpine:3.18
-          - platform: linux/arm/v5
-            container: debian:stretch-slim
-          - platform: linux/arm/v6
-            container: debian:bullseye-slim
           - platform: linux/arm/v6
             container: alpine:3.18
           - platform: linux/arm/v7
@@ -43,8 +39,6 @@ jobs:
             container: alpine:3.18
           - platform: linux/riscv64
             container: alpine:edge
-    env:
-      context: ${{ startsWith(matrix.container, 'alpine') && 'alpine' || 'debian' }}
     steps:
       -
         name: Checkout Repo
@@ -84,7 +78,7 @@ jobs:
         name: Build container and test-compile FTL
         uses: docker/build-push-action@v5
         with:
-          context: ftl-build/${{ env.context }}
+          context: ftl-build/alpine
           platforms: ${{ matrix.platform }}
           push: false
           target: tester
@@ -98,7 +92,7 @@ jobs:
         id: build_docker
         uses: docker/build-push-action@v5
         with:
-          context: ftl-build/${{ env.context }}
+          context: ftl-build/alpine
           platforms: ${{ matrix.platform }}
           push: ${{ github.event_name != 'workflow_dispatch' }}
           target: builder
@@ -113,7 +107,7 @@ jobs:
         id: build_ghcr
         uses: docker/build-push-action@v5
         with:
-          context: ftl-build/${{ env.context }}
+          context: ftl-build/alpine
           platforms: ${{ matrix.platform }}
           push: ${{ github.event_name != 'workflow_dispatch' }}
           target: builder
@@ -126,12 +120,12 @@ jobs:
         name: Export digests
         if: github.event_name != 'pull_request'
         run: |
-          mkdir -p /tmp/digests/dockerhub/${{ env.context }}
-          mkdir -p /tmp/digests/ghcr/${{ env.context }}
+          mkdir -p /tmp/digests/dockerhub/alpine
+          mkdir -p /tmp/digests/ghcr/alpine
           digest_docker="${{ steps.build_docker.outputs.digest }}"
-          touch "/tmp/digests/dockerhub/${{ env.context }}/${digest_docker#sha256:}"
+          touch "/tmp/digests/dockerhub/alpine/${digest_docker#sha256:}"
           digest_ghcr="${{ steps.build_ghcr.outputs.digest }}"
-          touch "/tmp/digests/ghcr/${{ env.context }}/${digest_ghcr#sha256:}"
+          touch "/tmp/digests/ghcr/alpine/${digest_ghcr#sha256:}"
       -
         name: Upload digest
         if: github.event_name != 'pull_request'
@@ -179,23 +173,9 @@ jobs:
           platform: alpine
           registry: dockerhub
       -
-        name: Collect and push (Debian, Docker Hub)
-        uses: ./.github/actions/merge-and-push
-        with:
-          imagename: ${{ env.DOCKER_REGISTRY_IMAGE }}
-          platform: debian
-          registry: dockerhub
-      -
         name: Collect and push (Alpine, GitHub Container Registry)
         uses: ./.github/actions/merge-and-push
         with:
           imagename: ${{ env.GITHUB_REGISTRY_IMAGE }}
           platform: alpine
-          registry: ghcr
-      -
-        name: Collect and push (Debian, GitHub Container Registry)
-        uses: ./.github/actions/merge-and-push
-        with:
-          imagename: ${{ env.GITHUB_REGISTRY_IMAGE }}
-          platform: debian
           registry: ghcr

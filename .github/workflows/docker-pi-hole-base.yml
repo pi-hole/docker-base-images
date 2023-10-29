@@ -23,7 +23,7 @@ jobs:
       matrix:
         job:
           - { DEBIAN_VERSION: bullseye-slim, PLATFORMS: 'linux/amd64, linux/arm64, linux/386, linux/arm/v7, linux/arm/v6, linux/ppc64le' }
-          - { DEBIAN_VERSION: sid-slim, PLATFORMS: 'linux/riscv64' }
+          - { DEBIAN_VERSION: bookworm-slim, PLATFORMS: 'linux/amd64, linux/arm64, linux/386, linux/arm/v7, linux/arm/v6, linux/ppc64le' }
     name: ${{ matrix.job.DEBIAN_VERSION }}
     steps:
       -

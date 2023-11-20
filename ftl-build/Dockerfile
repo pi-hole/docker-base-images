@@ -2,7 +2,6 @@ ARG CONTAINER="alpine:edge"
 FROM ${CONTAINER} AS builder
 
 ARG TARGETPLATFORM
-ARG idnversion=1.41
 ARG readlineversion=8.1
 ARG termcapversion=1.3.1
 ARG nettleversion=3.9.1
@@ -28,6 +27,10 @@ RUN apk add --no-cache \
         py3-yaml \
         zip \
         py3-requests \
+        libidn2-dev \
+        libidn2-static \
+        libunistring-dev \
+        libunistring-static \
         perl
 
 # Install pdns from community repo
@@ -41,13 +44,6 @@ RUN echo "@community http://dl-cdn.alpinelinux.org/alpine/v${ALPINE_VER}/communi
 
 ENV STATIC true
 ENV TEST true
-
-RUN curl -sSL https://ftl.pi-hole.net/libraries/libidn-${idnversion}.tar.gz | tar -xz \
-    && cd libidn-${idnversion} \
-    && ./configure --enable-static --disable-shared --disable-doc --disable-valgrind-tests \
-    && make -j $(nproc) install \
-    && cd .. \
-    && rm -r libidn-${idnversion}
 
 RUN curl -sSL https://ftl.pi-hole.net/libraries/termcap-${termcapversion}.tar.gz | tar -xz \
     && cd termcap-${termcapversion} \

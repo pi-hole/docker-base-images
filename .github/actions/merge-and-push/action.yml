@@ -5,9 +5,6 @@ inputs:
   imagename:
     required: true
     description: The name of the image to push
-  platform:
-    required: true
-    description: The platform to push the image for
   registry:
     required: true
     description: The Registry to push the image to
@@ -19,7 +16,6 @@ runs:
       shell: bash
       run: |
         [[ "${{ inputs.imagename }}" ]] || { echo "imagename input is empty" ; exit 1; }
-        [[ "${{ inputs.platform }}" ]] || { echo "platform input is empty" ; exit 1; }
         [[ "${{ inputs.registry }}" ]] || { echo "registry input is empty" ; exit 1; }
 
     -
@@ -37,12 +33,12 @@ runs:
           # type=ref,event=branch means that a tag is applied when the workflow is triggered by a push to a branch
           # type=ref,event=tag means that a tag is applied when the workflow is triggered by a push to a tag
         tags: |
-          type=schedule,suffix=-${{ inputs.platform }},enable=${{ github.event_name == 'schedule' }}
-          type=ref,event=branch,suffix=-${{ inputs.platform }},enable=${{ github.event_name != 'schedule' }}
-          type=ref,event=tag,suffix=-${{ inputs.platform }}
+          type=schedule,enable=${{ github.event_name == 'schedule' }}
+          type=ref,event=branch,enable=${{ github.event_name != 'schedule' }}
+          type=ref,event=tag
     -
       name: Create manifest list and push to repository
-      working-directory: /tmp/digests/${{ inputs.registry }}/${{ inputs.platform }}
+      working-directory: /tmp/digests/${{ inputs.registry }}
       # When using composite actions, you have to specify the shell. As you
       # don’t specify a runner type in composite actions, you need to specify
       # the shell instead for each action.

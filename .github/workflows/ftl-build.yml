@@ -170,12 +170,10 @@ jobs:
         uses: ./.github/actions/merge-and-push
         with:
           imagename: ${{ env.DOCKER_REGISTRY_IMAGE }}
-          platform: alpine
           registry: dockerhub
       -
         name: Collect and push (GitHub Container Registry)
         uses: ./.github/actions/merge-and-push
         with:
           imagename: ${{ env.GITHUB_REGISTRY_IMAGE }}
-          platform: alpine
           registry: ghcr

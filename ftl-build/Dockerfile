@@ -2,7 +2,7 @@ ARG CONTAINER="alpine:edge"
 FROM ${CONTAINER} AS builder
 
 ARG TARGETPLATFORM
-ARG readlineversion=8.1
+ARG readlineversion=8.2
 ARG termcapversion=1.3.1
 ARG nettleversion=3.9.1
 ARG mbedtlsversion=3.5.0

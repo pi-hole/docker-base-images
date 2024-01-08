@@ -92,7 +92,7 @@ jobs:
           build-args: |
             CONTAINER=${{ matrix.container }}
       -
-        name: Push builder target and push by digest (Docker Hub)
+        name: Push builder target and push by digest
         if: github.event_name != 'pull_request'
         id: build_docker
         uses: docker/build-push-action@v5
@@ -107,30 +107,12 @@ jobs:
           outputs: |
             type=image,name=${{ env.DOCKER_REGISTRY_IMAGE }},push-by-digest=true,name-canonical=true,push=true
       -
-        name: Push builder target and push by digest (GitHub Container Registry)
-        if: github.event_name != 'pull_request'
-        id: build_ghcr
-        uses: docker/build-push-action@v5
-        with:
-          context: ftl-build
-          platforms: ${{ matrix.platform }}
-          push: ${{ github.event_name != 'workflow_dispatch' }}
-          target: builder
-          labels: ${{ steps.meta.outputs.labels }}
-          build-args: |
-            CONTAINER=${{ matrix.container }}
-          outputs: |
-            type=image,name=${{ env.GITHUB_REGISTRY_IMAGE }},push-by-digest=true,name-canonical=true,push=true
-      -
         name: Export digests
         if: github.event_name != 'pull_request'
         run: |
-          mkdir -p /tmp/digests/dockerhub
-          mkdir -p /tmp/digests/ghcr
+          mkdir -p /tmp/digests/
           digest_docker="${{ steps.build_docker.outputs.digest }}"
           touch "/tmp/digests/dockerhub/${digest_docker#sha256:}"
-          digest_ghcr="${{ steps.build_ghcr.outputs.digest }}"
-          touch "/tmp/digests/ghcr/${digest_ghcr#sha256:}"
       -
         name: Upload digest
         if: github.event_name != 'pull_request'
@@ -172,15 +154,38 @@ jobs:
           docker_password: ${{ secrets.DOCKERHUB_PASS }}
           ghcr_username: ${{ github.repository_owner }}
           ghcr_password: ${{ secrets.GITHUB_TOKEN }}
+      
       -
-        name: Collect and push (Docker Hub)
-        uses: ./.github/actions/merge-and-push
+        name: Docker meta
+        id: meta_docker
+        uses: docker/metadata-action@v4
         with:
-          imagename: ${{ env.DOCKER_REGISTRY_IMAGE }}
-          registry: dockerhub
+          images: |
+            ${{ env.DOCKER_REGISTRY_IMAGE }},enable=${{ github.event_name != 'workflow_dispatch' }}
+            ${{ env.GITHUB_REGISTRY_IMAGE }},enable=${{ github.event_name != 'workflow_dispatch' }}
+          # We want to tag the image with the latest tag if the workflow was triggered by a tag
+          flavor: |
+            latest=${{ startsWith(github.ref, 'refs/tags/') }}
+          # tags:
+            # type=schedule means that a tag is applied when the workflow is triggered by a schedule event
+            # type=ref,event=branch means that a tag is applied when the workflow is triggered by a push to a branch
+            # type=ref,event=tag means that a tag is applied when the workflow is triggered by a push to a tag
+          tags: |
+            type=schedule,enable=${{ github.event_name == 'schedule' }}
+            type=ref,event=branch,enable=${{ github.event_name != 'schedule' }}
+            type=ref,event=tag
       -
-        name: Collect and push (GitHub Container Registry)
-        uses: ./.github/actions/merge-and-push
-        with:
-          imagename: ${{ env.GITHUB_REGISTRY_IMAGE }}
-          registry: ghcr
+        name: Create manifest list and push to repository  DockerHub and GitHub Container Registry)
+        working-directory: /tmp/digests
+        run: |
+          docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
+            $(printf '${{ env.GITHUB_REGISTRY_IMAGE }}@sha256:%s ' *)
+          docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
+            $(printf '${{ env.DOCKER_REGISTRY_IMAGE }}@sha256:%s ' *)
+      -
+        name: Inspect images
+        shell: bash
+        run: |
+          docker buildx imagetools inspect ${{ env.DOCKER_REGISTRY_IMAGE }}:${{ steps.meta_docker.outputs.version }}
+          docker buildx imagetools inspect ${{ env.GITHUB_REGISTRY_IMAGE }}:${{ steps.meta_docker.outputs.version }}
+      

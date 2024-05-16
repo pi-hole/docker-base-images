@@ -112,7 +112,7 @@ jobs:
         run: |
           mkdir -p /tmp/digests/
           digest_docker="${{ steps.build_docker.outputs.digest }}"
-          touch "/tmp/digests/dockerhub/${digest_docker#sha256:}"
+          touch "/tmp/digests/${digest_docker#sha256:}"
       -
         name: Upload digest
         if: github.event_name != 'pull_request'

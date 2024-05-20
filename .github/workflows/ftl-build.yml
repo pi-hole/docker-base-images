@@ -5,6 +5,8 @@ on:
       - 'ftl-build/**'
       - '.github/workflows/ftl-build.yml'
   push:
+    branches:
+      - '**'
     tags:
       - "**"
     paths:

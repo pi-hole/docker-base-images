@@ -31,7 +31,8 @@ RUN apk add --no-cache \
         libidn2-static \
         libunistring-dev \
         libunistring-static \
-        perl
+        perl \
+        clang
 
 # Install pdns from community repo
 RUN echo "@community http://dl-cdn.alpinelinux.org/alpine/v${ALPINE_VER}/community" >> /etc/apk/repositories; \

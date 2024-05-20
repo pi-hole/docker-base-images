@@ -96,6 +96,7 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           outputs: |
             type=image,name=${{ env.DOCKER_REGISTRY_IMAGE }},push-by-digest=true,name-canonical=true,push=true
+            type=image,name=${{ env.GITHUB_REGISTRY_IMAGE }},push-by-digest=true,name-canonical=true,push=true
       -
         name: Export digests
         if: github.event_name != 'pull_request'

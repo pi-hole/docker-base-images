@@ -86,7 +86,7 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
-            CONTAINER=alpine:${{ github.event_name == 'scheduled' && 'edge' || 'latest' }}
+            CONTAINER=alpine:${{ ( github.event_name == 'scheduled' || matrix.platform == 'linux/riscv64' ) && 'edge' || 'latest' }}
       -
         name: Push builder target and push by digest
         if: github.event_name != 'pull_request'

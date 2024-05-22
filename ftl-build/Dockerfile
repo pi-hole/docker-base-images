@@ -36,7 +36,8 @@ RUN apk add --no-cache \
         pdns \
         pdns-backend-sqlite3 \
         pdns-recursor \
-        pdns-doc
+        pdns-doc \
+        gdb
 
 ENV STATIC true
 ENV TEST true

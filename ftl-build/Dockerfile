@@ -31,16 +31,13 @@ RUN apk add --no-cache \
         libidn2-static \
         libunistring-dev \
         libunistring-static \
-        perl
-
-# Install pdns from community repo
-RUN echo "@community http://dl-cdn.alpinelinux.org/alpine/v${ALPINE_VER}/community" >> /etc/apk/repositories; \
-    apk update; \
-    apk add --no-cache \
-    pdns \
-    pdns-backend-sqlite3 \
-    pdns-recursor \
-    pdns-doc
+        perl \
+        clang \
+        pdns \
+        pdns-backend-sqlite3 \
+        pdns-recursor \
+        pdns-doc \
+        gdb
 
 ENV STATIC true
 ENV TEST true
@@ -102,6 +99,7 @@ FROM builder AS tester
 
 # For FTL test compilation
 ARG TARGETPLATFORM
+ENV TARGETPLATFORM=${TARGETPLATFORM:-linux/amd64}
 ARG TARGETARCH
 ARG TARGETVARIANT
 ARG CI_ARCH="$TARGETPLATFORM"

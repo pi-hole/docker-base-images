@@ -77,7 +77,7 @@ jobs:
         uses: docker/setup-buildx-action@v3
       -
         name: Build container and test-compile FTL
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: ftl-build
           platforms: ${{ matrix.platform }}
@@ -91,7 +91,7 @@ jobs:
         name: Push builder target and push by digest
         if: github.event_name != 'pull_request'
         id: build_docker
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: ftl-build
           platforms: ${{ matrix.platform }}

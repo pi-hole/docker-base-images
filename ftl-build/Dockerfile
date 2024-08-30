@@ -1,4 +1,4 @@
-ARG CONTAINER="alpine:edge"
+ARG CONTAINER="alpine:latest"
 FROM ${CONTAINER} AS builder
 
 ARG TARGETPLATFORM

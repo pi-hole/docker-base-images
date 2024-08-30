@@ -98,6 +98,8 @@ jobs:
           push: ${{ github.event_name != 'workflow_dispatch' }}
           target: builder
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            CONTAINER=alpine:${{ ( github.event_name == 'scheduled' || matrix.platform == 'linux/riscv64' ) && 'edge' || 'latest' }}
           outputs: |
             type=image,name=${{ env.DOCKER_REGISTRY_IMAGE }},push-by-digest=true,name-canonical=true,push=true
             type=image,name=${{ env.GITHUB_REGISTRY_IMAGE }},push-by-digest=true,name-canonical=true,push=true

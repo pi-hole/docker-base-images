@@ -1,11 +1,11 @@
-ARG CONTAINER="alpine:edge"
+ARG CONTAINER="alpine:latest"
 FROM ${CONTAINER} AS builder
 
 ARG TARGETPLATFORM
 ARG readlineversion=8.2
 ARG termcapversion=1.3.1
 ARG nettleversion=3.9.1
-ARG mbedtlsversion=3.5.0
+ARG mbedtlsversion=3.6.1
 
 RUN apk add --no-cache \
         alpine-sdk \
@@ -37,7 +37,9 @@ RUN apk add --no-cache \
         pdns-backend-sqlite3 \
         pdns-recursor \
         pdns-doc \
-        gdb
+        gdb \
+        py3-jinja2 \
+        py3-jsonschema
 
 ENV STATIC true
 ENV TEST true
@@ -70,7 +72,7 @@ RUN curl -sSL https://ftl.pi-hole.net/libraries/nettle-${nettleversion}.tar.gz |
 # Build static mbedTLS with pthread support
 # Disable AESNI on linux/386 asit would possibly result in an incompatible
 # binary in processors lacking the AESNI and SSE2 instruction sets
-RUN curl -sSL https://ftl.pi-hole.net/libraries/mbedtls-${mbedtlsversion}.tar.gz | tar -xz \
+RUN curl -sSL https://ftl.pi-hole.net/libraries/mbedtls-${mbedtlsversion}.tar.bz2 | tar -xj \
     && cd mbedtls-${mbedtlsversion} \
     && sed -i '/#define MBEDTLS_THREADING_C/s*^//**g' include/mbedtls/mbedtls_config.h \
     && sed -i '/#define MBEDTLS_THREADING_PTHREAD/s*^//**g' include/mbedtls/mbedtls_config.h \

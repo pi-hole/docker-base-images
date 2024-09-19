@@ -39,7 +39,8 @@ RUN apk add --no-cache \
         pdns-doc \
         gdb \
         py3-jinja2 \
-        py3-jsonschema
+        py3-jsonschema \
+        ncurses
 
 ENV STATIC true
 ENV TEST true

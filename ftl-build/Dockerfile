@@ -5,7 +5,7 @@ ARG TARGETPLATFORM
 ARG readlineversion=8.2
 ARG termcapversion=1.3.1
 ARG nettleversion=3.9.1
-ARG mbedtlsversion=3.6.1
+ARG mbedtlsversion=3.6.2
 
 RUN apk add --no-cache \
         alpine-sdk \

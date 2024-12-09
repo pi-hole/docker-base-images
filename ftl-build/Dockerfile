@@ -1,4 +1,4 @@
-ARG CONTAINER="alpine:latest"
+ARG CONTAINER="alpine:3.21"
 FROM ${CONTAINER} AS builder
 
 ARG TARGETPLATFORM
@@ -45,9 +45,12 @@ RUN apk add --no-cache \
 ENV STATIC true
 ENV TEST true
 
+# As of Alpine 3.21 (Dec 2024), we need to patch the termcap library to include
+# the standard headers as well as unistd.h for the write function
 RUN curl -sSL https://ftl.pi-hole.net/libraries/termcap-${termcapversion}.tar.gz | tar -xz \
     && cd termcap-${termcapversion} \
     && ./configure --enable-static --disable-shared --disable-doc --without-examples \
+    && sed -i '1i #define STDC_HEADERS 1\n#include <unistd.h>' termcap.c tparam.c \
     && make -j $(nproc) \
     && make install \
     && ls /usr/local/lib/ \
@@ -108,6 +111,14 @@ ARG TARGETVARIANT
 ARG CI_ARCH="$TARGETPLATFORM"
 ARG GIT_TAG="test-build"
 ARG GIT_BRANCH="special/CI_development"
+
+# Ensure that the TERM environment variable is set
+ENV TERM=${TERM:-xterm}
+
+# Monkeypatch BATS to remove duplicate output of starting and finished test
+# BATS uses ANSI escape codes to overwrite the line after the test has finished
+# This is not supported by Github Actions as it does not provide a TTY to the docker build container
+RUN sed -i '/buffer_with_truncation /d' /bats-core/libexec/bats-core/bats-format-pretty
 
 # Test compile FTL's development branch, the result is removed from the final container
 # Run the full test suite to ensure that the container is still capable of running the tests

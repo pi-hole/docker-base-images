@@ -45,9 +45,12 @@ RUN apk add --no-cache \
 ENV STATIC true
 ENV TEST true
 
+# As of Alpine 3.21 (Dec 2024), we need to patch the termcap library to include
+# the standard headers as well as unistd.h for the write function
 RUN curl -sSL https://ftl.pi-hole.net/libraries/termcap-${termcapversion}.tar.gz | tar -xz \
     && cd termcap-${termcapversion} \
     && ./configure --enable-static --disable-shared --disable-doc --without-examples \
+    && sed -i '1i #define STDC_HEADERS 1\n#include <unistd.h>' termcap.c tparam.c \
     && make -j $(nproc) \
     && make install \
     && ls /usr/local/lib/ \

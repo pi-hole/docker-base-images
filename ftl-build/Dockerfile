@@ -112,6 +112,9 @@ ARG CI_ARCH="$TARGETPLATFORM"
 ARG GIT_TAG="test-build"
 ARG GIT_BRANCH="special/CI_development"
 
+# Ensure that the TERM environment variable is set
+ENV TERM=${TERM:-xterm}
+
 # Test compile FTL's development branch, the result is removed from the final container
 # Run the full test suite to ensure that the container is still capable of running the tests
 RUN git clone https://github.com/pi-hole/FTL.git --branch "${GIT_BRANCH}" \

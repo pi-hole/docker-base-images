@@ -8,5 +8,3 @@ updates:
       day: saturday
       time: "10:00"
     target-branch: master
-    reviewers:
-      - "pi-hole/docker-maintainers"

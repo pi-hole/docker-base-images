@@ -123,8 +123,9 @@ RUN sed -i '/buffer_with_truncation /d' /bats-core/libexec/bats-core/bats-format
 
 # Test compile FTL's development branch, the result is removed from the final container
 # Run the full test suite to ensure that the container is still capable of running the tests
-RUN git clone https://github.com/pi-hole/FTL.git --branch "${GIT_BRANCH}" \
-    && cd FTL
+WORKDIR /opt/FTL-build
+
+RUN git clone https://github.com/pi-hole/FTL.git --branch "${GIT_BRANCH}" .
 
 RUN bash build.sh "-DSTATIC=${STATIC}" \
     && readelf -A ./pihole-FTL \

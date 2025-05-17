@@ -36,6 +36,11 @@ jobs:
           - platform: linux/arm64/v8
           - platform: linux/riscv64
     steps:
+      - 
+        name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
+        with:
+          detached: true
       -
         name: Prepare name for digest up/download
         run: |

@@ -1,11 +1,11 @@
-ARG CONTAINER="alpine:3.21"
+ARG CONTAINER="alpine:3.22"
 FROM ${CONTAINER} AS builder
 
 ARG TARGETPLATFORM
 ARG readlineversion=8.2
 ARG termcapversion=1.3.1
 ARG nettleversion=3.10.1
-ARG mbedtlsversion=3.6.2
+ARG mbedtlsversion=3.6.3.1
 
 RUN apk add --no-cache \
         alpine-sdk \
@@ -13,6 +13,7 @@ RUN apk add --no-cache \
         bind-tools \
         curl \
         gmp-dev \
+        gmp-static \
         libcap \
         linux-headers \
         openssh-client \
@@ -40,10 +41,11 @@ RUN apk add --no-cache \
         gdb \
         py3-jinja2 \
         py3-jsonschema \
-        ncurses
+        ncurses \
+        py3-dnspython
 
-ENV STATIC true
-ENV TEST true
+ENV STATIC=true
+ENV TEST=true
 
 # As of Alpine 3.21 (Dec 2024), we need to patch the termcap library to include
 # the standard headers as well as unistd.h for the write function

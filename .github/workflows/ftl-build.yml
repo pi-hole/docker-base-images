@@ -1,18 +1,21 @@
 name: ftl-build builds
 on:
-  pull_request:
-    paths:
-      - 'ftl-build/**'
-      - '.github/workflows/ftl-build.yml'
   push:
     branches:
       - '**'
-    tags:
-      - "**"
     paths:
       - 'ftl-build/**'
       - '.github/workflows/ftl-build.yml'
       - '.github/actions/**'
+    # Only run on push events to the main repository (not from forks)
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'ftl-build/**'
+      - '.github/workflows/ftl-build.yml'
+    # Only run on PRs from forks
+    branches:
+      - '**'
   workflow_dispatch:
   schedule:
     # 1:30am UTC every Sunday, has no particular significance
@@ -24,17 +27,26 @@ env:
 
 jobs:
   build-and-test:
-    runs-on: ubuntu-latest
+    if: |
+      (github.event_name == 'push' && github.repository == 'pi-hole/docker-base-images') ||
+      (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository)
     strategy:
       fail-fast: false
       matrix:
         include:
           - platform: linux/amd64
+            runner: ubuntu-24.04
           - platform: linux/386
+            runner: ubuntu-24.04
           - platform: linux/arm/v6
+            runner: ubuntu-24.04-arm
           - platform: linux/arm/v7
+            runner: ubuntu-24.04-arm
           - platform: linux/arm64/v8
+            runner: ubuntu-24.04-arm
           - platform: linux/riscv64
+            runner: ubuntu-24.04
+    runs-on: ${{ matrix.runner }}
     steps:
       -
         name: Prepare name for digest up/download

@@ -7,6 +7,8 @@ on:
       - 'ftl-build/**'
       - '.github/workflows/ftl-build.yml'
       - '.github/actions/**'
+    tags:
+      - '**'
     # Only run on push events to the main repository (not from forks)
   pull_request:
     types: [opened, synchronize, reopened]

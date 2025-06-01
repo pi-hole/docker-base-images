@@ -48,6 +48,11 @@ jobs:
             runner: ubuntu-24.04
     runs-on: ${{ matrix.runner }}
     steps:
+      - 
+        name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
+        with:
+          detached: true
       -
         name: Prepare name for digest up/download
         run: |

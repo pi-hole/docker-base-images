@@ -1,5 +1,4 @@
-ARG CONTAINER="alpine:3.22"
-FROM ${CONTAINER} AS builder
+FROM alpine:3.22 AS builder
 
 ARG TARGETPLATFORM
 ARG readlineversion=8.2

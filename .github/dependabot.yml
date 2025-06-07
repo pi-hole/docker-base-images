@@ -10,3 +10,11 @@ updates:
       day: saturday
       time: "10:00"
     target-branch: master
+  # Maintain dependencies for Docker
+  - package-ecosystem: "docker"
+    directory: "/ftl-build/"
+    schedule:
+      interval: "weekly"
+      day: saturday
+      time: "10:00"
+    target-branch: master

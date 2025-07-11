@@ -69,7 +69,7 @@ RUN curl -sSL https://ftl.pi-hole.net/libraries/readline-${readlineversion}.tar.
 
 RUN curl -sSL https://ftl.pi-hole.net/libraries/nettle-${nettleversion}.tar.gz | tar -xz \
     && cd nettle-${nettleversion} \
-    && ./configure --enable-static --disable-shared --disable-openssl --disable-mini-gmp -disable-gcov --disable-documentation \
+    && ./configure --enable-static --disable-shared --disable-openssl --disable-mini-gmp --disable-gcov --disable-documentation \
     && make -j $(nproc) install \
     && cd .. \
     && rm -r nettle-${nettleversion}
@@ -118,7 +118,7 @@ ENV TERM=${TERM:-xterm}
 
 # Monkeypatch BATS to remove duplicate output of starting and finished test
 # BATS uses ANSI escape codes to overwrite the line after the test has finished
-# This is not supported by Github Actions as it does not provide a TTY to the docker build container
+# This is not supported by GitHub Actions as it does not provide a TTY to the docker build container
 RUN sed -i '/buffer_with_truncation /d' /bats-core/libexec/bats-core/bats-format-pretty
 
 # Test compile FTL's development branch, the result is removed from the final container

@@ -3,20 +3,7 @@ on:
   push:
     branches:
       - '**'
-    paths:
-      - 'ftl-build/**'
-      - '.github/workflows/ftl-build.yml'
-    tags:
-      - '**'
-    # Only run on push events to the main repository (not from forks)
   pull_request:
-    types: [opened, synchronize, reopened]
-    paths:
-      - 'ftl-build/**'
-      - '.github/workflows/ftl-build.yml'
-    # Only run on PRs from forks
-    branches:
-      - '**'
   workflow_dispatch:
   schedule:
     # 1:30am UTC every Sunday, has no particular significance
@@ -27,10 +14,28 @@ env:
   GITHUB_REGISTRY_IMAGE: ghcr.io/${{ github.repository_owner }}/ftl-build
 
 jobs:
-  build-and-test:
+  smoke-tests:
     if: |
-      (github.event_name == 'push' && github.repository == 'pi-hole/docker-base-images') ||
-      (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository)
+      github.event_name == 'push'
+      || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository)
+      || github.event_name == 'workflow_dispatch'
+      || github.event_name == 'schedule'
+
+    outputs:
+      DO_DEPLOY: ${{ steps.variables.outputs.DO_DEPLOY }}
+    runs-on: ubuntu-latest
+    steps:
+      -         
+        name: "Calculate required variables"
+        id: variables
+        run: |
+          echo "DO_DEPLOY=${{ github.event_name != 'pull_request' && secrets.DOCKERHUB_PASS != '' && github.actor != 'dependabot[bot]' }}" >> $GITHUB_OUTPUT
+
+
+  build-and-test:
+    needs: smoke-tests
+    env:
+      DO_DEPLOY: ${{ needs.smoke-tests.outputs.DO_DEPLOY }}
     strategy:
       fail-fast: false
       matrix:
@@ -71,6 +76,7 @@ jobs:
             type=ref,event=branch,enable=${{ github.event_name != 'schedule' }}
       -
         name: Login to Docker Hub
+        if: env.DO_DEPLOY == 'true'
         uses: docker/login-action@v2
         with:
           registry: docker.io
@@ -79,6 +85,7 @@ jobs:
 
       -
         name: Login to GitHub Container Registry
+        if: env.DO_DEPLOY == 'true'
         uses: docker/login-action@v2
         with:
           registry: ghcr.io
@@ -106,7 +113,7 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
       -
         name: Push builder target and push by digest
-        if: github.event_name != 'pull_request'
+        if: env.DO_DEPLOY == 'true'
         id: build_docker
         uses: docker/build-push-action@v6
         with:
@@ -120,14 +127,14 @@ jobs:
             type=image,name=${{ env.GITHUB_REGISTRY_IMAGE }},push-by-digest=true,name-canonical=true,push=true
       -
         name: Export digests
-        if: github.event_name != 'pull_request'
+        if: env.DO_DEPLOY == 'true'
         run: |
           mkdir -p /tmp/digests/
           digest_docker="${{ steps.build_docker.outputs.digest }}"
           touch "/tmp/digests/${digest_docker#sha256:}"
       -
         name: Upload digest
-        if: github.event_name != 'pull_request'
+        if: env.DO_DEPLOY == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: digests-${{ env.PLATFORM_PAIR }}
@@ -139,10 +146,11 @@ jobs:
   # If we would push immediately above, the individual runners would overwrite each other's images
   # https://docs.docker.com/build/ci/github-actions/multi-platform/#distribute-build-across-multiple-runners
   merge-and-deploy:
-    if: github.event_name != 'pull_request'
+    if: needs.smoke-tests.outputs.DO_DEPLOY == 'true'
     runs-on: ubuntu-latest
     needs:
       - build-and-test
+      - smoke-tests
     steps:
       -
         name: Checkout Repo

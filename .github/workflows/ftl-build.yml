@@ -25,7 +25,7 @@ jobs:
       DO_DEPLOY: ${{ steps.variables.outputs.DO_DEPLOY }}
     runs-on: ubuntu-latest
     steps:
-      -         
+      -
         name: "Calculate required variables"
         id: variables
         run: |

@@ -1,10 +1,10 @@
-FROM alpine:3.22 AS builder
+FROM alpine:3.22 AS build
 
 ARG TARGETPLATFORM
-ARG readlineversion=8.2
+ARG readlineversion=8.3
 ARG termcapversion=1.3.1
-ARG nettleversion=3.10.1
-ARG mbedtlsversion=3.6.3.1
+ARG nettleversion=3.10.2
+ARG mbedtlsversion=3.6.4
 
 RUN apk add --no-cache \
         alpine-sdk \
@@ -102,7 +102,7 @@ RUN git clone https://github.com/bats-core/bats-core.git
 
 ENV BATS=/bats-core/bin/bats
 
-FROM builder AS tester
+FROM build AS test
 
 # For FTL test compilation
 ARG TARGETPLATFORM

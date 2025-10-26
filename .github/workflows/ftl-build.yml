@@ -77,7 +77,7 @@ jobs:
       -
         name: Login to Docker Hub
         if: env.DO_DEPLOY == 'true'
-        uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1 #v3.5.0
+        uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef #v3.6.0
         with:
           registry: docker.io
           username: ${{ secrets.DOCKERHUB_USER }}
@@ -86,7 +86,7 @@ jobs:
       -
         name: Login to GitHub Container Registry
         if: env.DO_DEPLOY == 'true'
-        uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1 #v3.5.0
+        uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef #v3.6.0
         with:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
@@ -167,7 +167,7 @@ jobs:
         uses: docker/setup-qemu-action@29109295f81e9208d7d86ff1c6c12d2833863392 #v3.6.0
       -
         name: Login to Docker Hub
-        uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1 #v3.5.0
+        uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef #v3.6.0
         with:
           registry: docker.io
           username: ${{ secrets.DOCKERHUB_USER }}
@@ -175,7 +175,7 @@ jobs:
 
       -
         name: Login to GitHub Container Registry
-        uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1 #v3.5.0
+        uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef #v3.6.0
         with:
           registry: ghcr.io
           username: ${{ github.repository_owner }}

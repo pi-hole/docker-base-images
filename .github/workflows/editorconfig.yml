@@ -12,7 +12,7 @@ jobs:
       uses: actions/checkout@v4
 
     - name: Get editorconfig-checker
-      uses: editorconfig-checker/action-editorconfig-checker@main # tag v1.0.0 is really out of date
+      uses: editorconfig-checker/action-editorconfig-checker@4b6cd6190d435e7e084fb35e36a096e98506f7b9 #v2.1.0
 
     - name: Run editorconfig-checker
       run: editorconfig-checker

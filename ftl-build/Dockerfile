@@ -85,7 +85,7 @@ RUN curl -sSL https://ftl.pi-hole.net/libraries/mbedtls-${mbedtlsversion}.tar.bz
          && echo "BUILDING WITHOUT AESNI SUPPORT" \
          && sed -i '/#define MBEDTLS_AESNI_C/s*^*//*g' include/mbedtls/mbedtls_config.h \
          || echo "BUILDING WITH AESNI SUPPORT" ) \
-    && cmake -S . -B build \
+    && cmake -S . -B build -DCMAKE_C_FLAGS="-fomit-frame-pointer" \
     && cmake --build build -j $(nproc) \
     && cmake --install build \
     && cd .. \

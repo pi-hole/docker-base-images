@@ -1,8 +1,8 @@
-FROM alpine:3.22 AS build
+FROM alpine:3.23 AS build
 
 ARG TARGETPLATFORM
 ARG readlineversion=8.3
-ARG termcapversion=1.3.1
+ARG termcapversion=1.3.1-patched
 ARG nettleversion=3.10.2
 ARG mbedtlsversion=4.0.0
 

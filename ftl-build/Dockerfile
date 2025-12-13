@@ -4,7 +4,7 @@ ARG TARGETPLATFORM
 ARG readlineversion=8.3
 ARG termcapversion=1.3.1-patched
 ARG nettleversion=3.10.2
-ARG mbedtlsversion=3.6.4
+ARG mbedtlsversion=4.0.0
 
 RUN apk add --no-cache \
         alpine-sdk \
@@ -85,7 +85,9 @@ RUN curl -sSL https://ftl.pi-hole.net/libraries/mbedtls-${mbedtlsversion}.tar.bz
          && echo "BUILDING WITHOUT AESNI SUPPORT" \
          && sed -i '/#define MBEDTLS_AESNI_C/s*^*//*g' include/mbedtls/mbedtls_config.h \
          || echo "BUILDING WITH AESNI SUPPORT" ) \
-    && make -j $(nproc) install \
+    && cmake -S . -B build -DCMAKE_C_FLAGS="-fomit-frame-pointer" \
+    && cmake --build build -j $(nproc) \
+    && cmake --install build \
     && cd .. \
     && rm -r mbedtls-${mbedtlsversion}
 

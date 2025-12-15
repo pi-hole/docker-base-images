@@ -90,14 +90,17 @@ jobs:
 
       - name: Build and push by digest
         id: build
-        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 #v6.18.0
+        uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 #v3.0.2
         with:
-          context: ftl-build
-          platforms: ${{ matrix.platform }}
-          target: build
-          labels: ${{ steps.meta.outputs.labels }}
-          outputs: |
-            type=image,name=${{ env.DOCKER_REGISTRY_IMAGE }},push-by-digest=true,name-canonical=true,push=true
+          max_attempts: 3
+          timeout_minutes: 60
+          command: |
+            docker buildx build \
+              --context ftl-build \
+              --platform ${{ matrix.platform }} \
+              --target build \
+              --label "${{ steps.meta.outputs.labels }}" \
+              --output "type=image,name=${{ env.DOCKER_REGISTRY_IMAGE }},push-by-digest=true,name-canonical=true,push=true"
 
       - name: Export digests
         run: |

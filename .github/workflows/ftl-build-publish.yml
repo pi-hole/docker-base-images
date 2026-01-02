@@ -40,9 +40,10 @@ jobs:
             runner: ubuntu-24.04-arm
     steps:
       - name: Prepare name for digest up/download
+        shell: bash
         run: |
-          platform=${{ matrix.platform }}
-          echo "PLATFORM_PAIR=${platform//\/,-}" >> $GITHUB_ENV
+          platform='${{ matrix.platform }}'
+          echo "PLATFORM_PAIR=${platform//\//-}" >> "$GITHUB_ENV"
 
       - &checkout-repo
         name: Checkout Repo
@@ -101,14 +102,15 @@ jobs:
               --platform ${{ matrix.platform }} \
               --target build \
               --label "${{ steps.meta.outputs.labels }}" \
+              --metadata-file "/tmp/build-metadata-${{ env.PLATFORM_PAIR }}.json" \
               --output "type=image,name=${{ env.DOCKER_REGISTRY_IMAGE }},push-by-digest=true,name-canonical=true,push=true" \
               ftl-build
 
       - name: Export digests
+        shell: bash
         run: |
-          mkdir -p /tmp/digests/
-          digest="${{ steps.build.outputs.digest }}"
-          touch "/tmp/digests/${digest#sha256:}"
+          mkdir -p /tmp/digests
+          touch "/tmp/digests/$(jq -er '."containerimage.digest" | sub("^sha256:"; "")' "/tmp/build-metadata-${{ env.PLATFORM_PAIR }}.json")"
 
       - name: Upload digest
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f #v6.0.0

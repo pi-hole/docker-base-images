@@ -1,0 +1,157 @@
+name: ftl-build build and publish
+
+on:
+  schedule:
+    # 1:30am UTC every Sunday, has no particular significance
+    - cron: "30 1 * * 0"
+  push:
+    branches:
+      - '**'
+  workflow_dispatch:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  DOCKER_REGISTRY_IMAGE: ${{ secrets.DOCKERHUB_NAMESPACE }}/ftl-build
+  GITHUB_REGISTRY_IMAGE: ghcr.io/${{ github.repository_owner }}/ftl-build
+
+jobs:
+  build:
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-24.04
+          - platform: linux/386
+            runner: ubuntu-24.04
+          - platform: linux/arm/v6
+            runner: ubuntu-24.04-arm
+          - platform: linux/arm/v7
+            runner: ubuntu-24.04-arm
+          - platform: linux/arm64/v8
+            runner: ubuntu-24.04-arm
+          - platform: linux/riscv64
+            runner: ubuntu-24.04-arm
+    steps:
+      - name: Prepare name for digest up/download
+        shell: bash
+        run: |
+          platform='${{ matrix.platform }}'
+          echo "PLATFORM_PAIR=${platform//\//-}" >> "$GITHUB_ENV"
+
+      - &checkout-repo
+        name: Checkout Repo
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 #v6.0.1
+
+      - &docker-meta
+        name: Docker meta
+        id: meta
+        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 #v5.10.0
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          images: |
+            ${{ env.DOCKER_REGISTRY_IMAGE }}
+            ${{ env.GITHUB_REGISTRY_IMAGE }}
+          flavor: |
+            latest=${{ startsWith(github.ref, 'refs/tags/') }}
+          tags: |
+            type=schedule,pattern=nightly
+            type=raw,value=nightly,enable=${{ github.ref == 'refs/heads/master' }}
+            type=ref,event=branch,enable=${{ github.ref != 'refs/heads/master' }}
+            type=ref,event=tag
+
+      - &login-dockerhub
+        name: Login to Docker Hub
+        uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef #v3.6.0
+        with:
+          registry: docker.io
+          username: ${{ secrets.DOCKERHUB_USER }}
+          password: ${{ secrets.DOCKERHUB_PASS }}
+
+      - &login-ghcr
+        name: Login to GitHub Container Registry
+        uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef #v3.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130 #v3.7.0
+        with:
+          platforms: ${{ matrix.platform }}
+
+      - &setup-buildx
+        name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 #v3.11.1
+
+      - name: Build and push by digest
+        id: build
+        uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 #v3.0.2
+        with:
+          max_attempts: 3
+          timeout_minutes: 60
+          command: |
+            docker buildx build \
+              --platform ${{ matrix.platform }} \
+              --target build \
+              --label "${{ steps.meta.outputs.labels }}" \
+              --metadata-file "/tmp/build-metadata-${{ env.PLATFORM_PAIR }}.json" \
+              --output "type=image,name=${{ env.DOCKER_REGISTRY_IMAGE }},push-by-digest=true,name-canonical=true,push=true" \
+              ftl-build
+
+      - name: Export digests
+        shell: bash
+        run: |
+          mkdir -p /tmp/digests
+          touch "/tmp/digests/$(jq -er '."containerimage.digest" | sub("^sha256:"; "")' "/tmp/build-metadata-${{ env.PLATFORM_PAIR }}.json")"
+
+      - name: Upload digest
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f #v6.0.0
+        with:
+          name: digests-${{ env.PLATFORM_PAIR }}
+          path: /tmp/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  # Merge all the digests into a single file
+  # If we would push immediately above, the individual runners would overwrite each other's images
+  # https://docs.docker.com/build/ci/github-actions/multi-platform/#distribute-build-across-multiple-runners
+  merge-and-deploy:
+    runs-on: ubuntu-latest
+    needs:
+      - build
+    steps:
+      - *checkout-repo
+
+      - name: Download digests
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 #v7.0.0
+        with:
+          path: /tmp/digests
+          pattern: digests-*
+          merge-multiple: true
+
+      - *setup-buildx
+      - *docker-meta
+      - *login-dockerhub
+      - *login-ghcr
+
+      - name: Create manifest list and push (DockerHub and GitHub Container Registry)
+        working-directory: /tmp/digests
+        run: |
+          docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
+            $(printf '${{ env.DOCKER_REGISTRY_IMAGE }}@sha256:%s ' *)
+          docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
+            $(printf '${{ env.GITHUB_REGISTRY_IMAGE }}@sha256:%s ' *)
+
+      - name: Inspect images
+        shell: bash
+        run: |
+          docker buildx imagetools inspect ${{ env.DOCKER_REGISTRY_IMAGE }}:${{ steps.meta.outputs.version }}
+          docker buildx imagetools inspect ${{ env.GITHUB_REGISTRY_IMAGE }}:${{ steps.meta.outputs.version }}

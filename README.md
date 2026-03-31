@@ -16,7 +16,9 @@ All images are pushed to both Docker Hub (`pihole/ftl-build`) and GHCR (`ghcr.io
 ## How does it get uploaded?
 
 - GitHub Actions (`ftl-build.yml`):
-  - Every `pull_request` event triggers a build (but does not push)
-  - Every `workflow_dispatch` event triggers a build of the branch it is run against, and uploads a branch-based tag
-  - Every `tag` event (e.g `v1`) triggers a build and uploads both `${{matrix.ARCH}}` and `v1-${{matrix.ARCH}}` tags
-  - Schedule: 1:30am UTC every Sunday a build is triggered and a `${{matrix.ARCH}}` tag is uploaded
+  - Every `pull_request` event triggers a test build (does not push)
+  - Every branch `push` (except `master`) publishes the branch name as a tag
+  - Every `workflow_dispatch` event triggers a build of the branch it is run against, and publishes the branch name as a tag
+  - Every push to `master` publishes the `nightly` tag
+  - Schedule: 1:30am UTC every Sunday a build is triggered and the `nightly` tag is published
+  - Every published GitHub `release` (e.g. `v1`) publishes the release tag and `latest`

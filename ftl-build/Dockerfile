@@ -10,39 +10,39 @@ RUN apk add --no-cache \
         alpine-sdk \
         bash \
         bind-tools \
+        binutils \
+        clang \
+        cmake \
         curl \
+        gdb \
         gmp-dev \
         gmp-static \
-        libcap \
-        linux-headers \
-        openssh-client \
-        shadow \
-        sqlite \
-        binutils \
-        cmake \
-        xxd \
         jq \
-        m4 \
-        python3 \
-        py3-yaml \
-        zip \
-        py3-requests \
+        libcap \
         libidn2-dev \
         libidn2-static \
         libunistring-dev \
         libunistring-static \
-        perl \
-        clang \
+        linux-headers \
+        m4 \
+        ncurses \
+        openssh-client \
         pdns \
         pdns-backend-sqlite3 \
-        pdns-recursor \
         pdns-doc \
-        gdb \
+        pdns-recursor \
+        perl \
+        py3-dnspython \
         py3-jinja2 \
         py3-jsonschema \
-        ncurses \
-        py3-dnspython \
-        py3-pytest
+        py3-pytest \
+        py3-requests \
+        py3-yaml \
+        python3 \
+        shadow \
+        sqlite \
+        xxd \
+        zip
 
 ENV STATIC=true
 ENV TEST=true

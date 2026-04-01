@@ -41,7 +41,8 @@ RUN apk add --no-cache \
         py3-jinja2 \
         py3-jsonschema \
         ncurses \
-        py3-dnspython
+        py3-dnspython \
+        py3-pytest
 
 ENV STATIC=true
 ENV TEST=true

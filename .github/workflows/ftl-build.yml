@@ -47,7 +47,7 @@ jobs:
         run: echo "Exposing env vars for reusable workflow"
 
   build-and-test:
-    uses: docker/github-builder/.github/workflows/build.yml@v1.4.0
+    uses: docker/github-builder/.github/workflows/build.yml@2497a7d1e7d8683af4949c9d6d62012bc16ed59c #v1.5.0
     needs:
       - smoke-tests
     permissions:
@@ -58,8 +58,7 @@ jobs:
       cache-scope: build
       cache-mode: max
       context: ftl-build
-      # fail-fast need https://github.com/docker/github-builder/pull/158 to be released
-      #fail-fast: true
+      fail-fast: true
       output: image
       target: test
       platforms: linux/amd64,linux/386,linux/arm/v6,linux/arm/v7,linux/arm64,linux/riscv64
@@ -71,7 +70,7 @@ jobs:
   build-and-push:
     if: needs.smoke-tests.outputs.DO_DEPLOY == 'true'
     needs:  [smoke-tests, build-and-test]
-    uses: docker/github-builder/.github/workflows/build.yml@v1.4.0
+    uses: docker/github-builder/.github/workflows/build.yml@2497a7d1e7d8683af4949c9d6d62012bc16ed59c #v1.5.0
     permissions:
       contents: read # same as global permissions
       id-token: write # for signing attestation(s) with GitHub OIDC Token
@@ -82,8 +81,7 @@ jobs:
       cache-scope: build
       cache-mode: max
       context: ftl-build
-      # fail-fast need https://github.com/docker/github-builder/pull/158 to be released
-      #fail-fast: true
+      fail-fast: true
       output: image
       target: build
       platforms: linux/amd64,linux/386,linux/arm/v6,linux/arm/v7,linux/arm64,linux/riscv64

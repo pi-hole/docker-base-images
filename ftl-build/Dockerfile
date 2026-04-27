@@ -101,9 +101,12 @@ RUN git clone https://github.com/ianlancetaylor/libbacktrace.git \
     && rm -r libbacktrace
 
 # Install bats-core directly into the build image
-RUN git clone https://github.com/bats-core/bats-core.git
-
-ENV BATS=/bats-core/bin/bats
+RUN git clone https://github.com/bats-core/bats-core.git /bats/bats-core \
+  && git clone --depth=1 --quiet https://github.com/bats-core/bats-support /bats/bats-support \
+  && git clone --depth=1 --quiet https://github.com/bats-core/bats-assert  /bats/bats-assert \
+  && git clone --depth=1 --quiet https://github.com/bats-core/bats-file    /bats/bats-file
+ENV BATS=/bats/bats-core/bin/bats
+ENV BATS_LIB_PATH=/bats/
 
 FROM build AS test
 

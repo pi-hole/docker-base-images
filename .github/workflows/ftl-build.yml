@@ -14,7 +14,7 @@ on:
     - cron: "30 1 * * 0"
 
 env:
-  DOCKER_REGISTRY_IMAGE: ${{ secrets.DOCKERHUB_NAMESPACE }}/ftl-build
+  DOCKER_REGISTRY_IMAGE: ${{ vars.DOCKERHUB_NAMESPACE }}/ftl-build
   GITHUB_REGISTRY_IMAGE: ghcr.io/${{ github.repository_owner }}/ftl-build
 
 permissions:

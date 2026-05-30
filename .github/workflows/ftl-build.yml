@@ -47,7 +47,7 @@ jobs:
         run: echo "Exposing env vars for reusable workflow"
 
   build-and-test:
-    uses: docker/github-builder/.github/workflows/build.yml@073833262a23a17675c95c4541ab063b7646756b #v1.9.0
+    uses: docker/github-builder/.github/workflows/build.yml@17bd7d64200cae4ba58ffc099934e8012ae320f2 #v1.10.0
     needs:
       - smoke-tests
     permissions:
@@ -70,7 +70,7 @@ jobs:
   build-and-push:
     if: needs.smoke-tests.outputs.DO_DEPLOY == 'true'
     needs:  [smoke-tests, build-and-test]
-    uses: docker/github-builder/.github/workflows/build.yml@073833262a23a17675c95c4541ab063b7646756b #v1.9.0
+    uses: docker/github-builder/.github/workflows/build.yml@17bd7d64200cae4ba58ffc099934e8012ae320f2 #v1.10.0
     permissions:
       contents: read # same as global permissions
       id-token: write # for signing attestation(s) with GitHub OIDC Token

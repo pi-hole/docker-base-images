@@ -1,4 +1,4 @@
-FROM alpine:3.23 AS build
+FROM alpine:3.24 AS build
 
 ARG TARGETPLATFORM
 ARG readlineversion=8.3

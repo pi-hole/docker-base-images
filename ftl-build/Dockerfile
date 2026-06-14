@@ -5,6 +5,10 @@ ARG readlineversion=8.3
 ARG termcapversion=1.3.1-patched
 ARG nettleversion=3.10.2
 ARG mbedtlsversion=4.0.0
+ARG BATS_CORE_VER=v1.13.0
+ARG BATS_SUPPORT_VER=v0.3.0
+ARG BATS_ASSERT_VER=v2.2.4
+ARG BATS_FILE_VER=v0.4.0
 
 RUN apk add --no-cache \
         alpine-sdk \
@@ -101,9 +105,12 @@ RUN git clone https://github.com/ianlancetaylor/libbacktrace.git \
     && rm -r libbacktrace
 
 # Install bats-core directly into the build image
-RUN git clone https://github.com/bats-core/bats-core.git
-
-ENV BATS=/bats-core/bin/bats
+RUN git clone --depth=1 --single-branch --branch "${BATS_CORE_VER}" https://github.com/bats-core/bats-core.git /bats/bats-core \
+  && git clone --depth=1 --single-branch --branch "${BATS_SUPPORT_VER}" https://github.com/bats-core/bats-support /bats/bats-support \
+  && git clone --depth=1 --single-branch --branch "${BATS_ASSERT_VER}" https://github.com/bats-core/bats-assert  /bats/bats-assert \
+  && git clone --depth=1 --single-branch --branch "${BATS_FILE_VER}" https://github.com/bats-core/bats-file    /bats/bats-file
+ENV BATS=/bats/bats-core/bin/bats
+ENV BATS_LIB_PATH=/bats/
 
 FROM build AS test
 
@@ -122,7 +129,7 @@ ENV TERM=${TERM:-xterm}
 # Monkeypatch BATS to remove duplicate output of starting and finished test
 # BATS uses ANSI escape codes to overwrite the line after the test has finished
 # This is not supported by Github Actions as it does not provide a TTY to the docker build container
-RUN sed -i '/buffer_with_truncation /d' /bats-core/libexec/bats-core/bats-format-pretty
+RUN sed -i '/buffer_with_truncation /d' /bats/bats-core/libexec/bats-core/bats-format-pretty
 
 # Test compile FTL's development branch, the result is removed from the final container
 # Run the full test suite to ensure that the container is still capable of running the tests

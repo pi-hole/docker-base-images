@@ -5,6 +5,7 @@ ARG readlineversion=8.3
 ARG termcapversion=1.3.1-patched
 ARG nettleversion=3.10.2
 ARG mbedtlsversion=4.0.0
+ARG opensslversion=3.5.7
 ARG BATS_CORE_VER=v1.13.0
 ARG BATS_SUPPORT_VER=v0.3.0
 ARG BATS_ASSERT_VER=v2.2.4
@@ -95,6 +96,28 @@ RUN curl -sSL https://ftl.pi-hole.net/libraries/mbedtls-${mbedtlsversion}.tar.bz
     && cmake --install build \
     && cd .. \
     && rm -r mbedtls-${mbedtlsversion}
+
+# Build static OpenSSL 3.5 LTS (TLS for civetweb + DoT/DoH, and native QUIC for
+# the future DoQ/DoH3 work).
+# Trimmed for binary size: drop the legacy provider, unused protocols/ciphers,
+# engines and DSO. QUIC stays enabled (default in 3.5). no-deprecated is left
+# off on purpose: it saves very little and would require a civetweb patch
+# (SSL_library_init, SSL_get_peer_certificate) to keep compiling.
+# TODO: pull from the ftl.pi-hole.net mirror (like the other libs) once the
+# tarball is uploaded there; using the upstream release directly for now.
+RUN curl -sSL https://github.com/openssl/openssl/releases/download/openssl-${opensslversion}/openssl-${opensslversion}.tar.gz | tar -xz \
+    && cd openssl-${opensslversion} \
+    && ./config \
+        no-shared no-tests no-docs no-apps \
+        no-legacy no-comp no-dtls no-ssl3 \
+        no-psk no-srp no-idea no-rc2 no-rc4 no-rc5 no-md4 no-mdc2 no-whirlpool \
+        no-engine no-dso \
+        --prefix=/usr/local --libdir=lib --openssldir=/usr/local/ssl \
+    && make -j $(nproc) \
+    && make install_dev \
+    && ls -l /usr/local/lib/libssl.a /usr/local/lib/libcrypto.a \
+    && cd .. \
+    && rm -r openssl-${opensslversion}
 
 # Build static libbacktrace
 RUN git clone https://github.com/ianlancetaylor/libbacktrace.git \

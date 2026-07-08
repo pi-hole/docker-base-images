@@ -170,7 +170,7 @@ RUN sed -i '/buffer_with_truncation /d' /bats/bats-core/libexec/bats-core/bats-f
 # Run the full test suite to ensure that the container is still capable of running the tests
 RUN git clone https://github.com/pi-hole/FTL.git --branch "${GIT_BRANCH}" \
     && cd FTL \
-    && bash build.sh "-DSTATIC=${STATIC}" \
+    && bash build.sh "-DSTATIC=${STATIC} -DBUILD_TAR_REGRESSION=ON -DBUILD_GZIP_REGRESSION=ON -DBUILD_DOTDOH_REGRESSION=ON" \
     && readelf -A ./pihole-FTL \
     && readelf -l ./pihole-FTL \
     && bash test/arch_test.sh \

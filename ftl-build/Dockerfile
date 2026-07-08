@@ -103,8 +103,6 @@ RUN curl -sSL https://ftl.pi-hole.net/libraries/mbedtls-${mbedtlsversion}.tar.bz
 # engines and DSO. QUIC stays enabled (default in 3.5). no-deprecated is left
 # off on purpose: it saves very little and would require a civetweb patch
 # (SSL_library_init, SSL_get_peer_certificate) to keep compiling.
-# TODO: pull from the ftl.pi-hole.net mirror (like the other libs) once the
-# tarball is uploaded there; using the upstream release directly for now.
 RUN curl -sSL https://github.com/openssl/openssl/releases/download/openssl-${opensslversion}/openssl-${opensslversion}.tar.gz | tar -xz \
     && cd openssl-${opensslversion} \
     && ./config \

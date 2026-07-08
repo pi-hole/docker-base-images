@@ -103,9 +103,23 @@ RUN curl -sSL https://ftl.pi-hole.net/libraries/mbedtls-${mbedtlsversion}.tar.bz
 # engines and DSO. QUIC stays enabled (default in 3.5). no-deprecated is left
 # off on purpose: it saves very little and would require a civetweb patch
 # (SSL_library_init, SSL_get_peer_certificate) to keep compiling.
-RUN curl -sSL https://github.com/openssl/openssl/releases/download/openssl-${opensslversion}/openssl-${opensslversion}.tar.gz | tar -xz \
+# Pick the OpenSSL target from TARGETPLATFORM: ./config guesses it from `uname`,
+# which is wrong whenever the container arch differs from the build host kernel
+# (386 on a 64-bit kernel, the 32-bit ARM variants on an arm64 runner, riscv64
+# under QEMU) and yields "64-bit mode not compiled in". Runtime CPU-feature
+# dispatch still handles AES-NI etc., so no further per-arch tuning is needed.
+RUN case "${TARGETPLATFORM}" in \
+        "linux/amd64")   OSSL_TARGET="linux-x86_64"    ;; \
+        "linux/386")     OSSL_TARGET="linux-x86"       ;; \
+        "linux/arm/v6")  OSSL_TARGET="linux-armv4"     ;; \
+        "linux/arm/v7")  OSSL_TARGET="linux-armv4"     ;; \
+        "linux/arm64")   OSSL_TARGET="linux-aarch64"   ;; \
+        "linux/riscv64") OSSL_TARGET="linux64-riscv64" ;; \
+        *) echo "unsupported TARGETPLATFORM: ${TARGETPLATFORM}" >&2; exit 1 ;; \
+    esac \
+    && curl -sSL https://github.com/openssl/openssl/releases/download/openssl-${opensslversion}/openssl-${opensslversion}.tar.gz | tar -xz \
     && cd openssl-${opensslversion} \
-    && ./config \
+    && ./Configure "${OSSL_TARGET}" \
         no-shared no-tests no-docs no-apps \
         no-legacy no-comp no-dtls no-ssl3 \
         no-psk no-srp no-idea no-rc2 no-rc4 no-rc5 no-md4 no-mdc2 no-whirlpool \

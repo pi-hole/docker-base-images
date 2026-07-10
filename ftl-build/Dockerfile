@@ -117,7 +117,7 @@ RUN case "${TARGETPLATFORM}" in \
         "linux/riscv64") OSSL_TARGET="linux64-riscv64" ;; \
         *) echo "unsupported TARGETPLATFORM: ${TARGETPLATFORM}" >&2; exit 1 ;; \
     esac \
-    && curl -sSL https://github.com/openssl/openssl/releases/download/openssl-${opensslversion}/openssl-${opensslversion}.tar.gz | tar -xz \
+    && curl -sSL https://ftl.pi-hole.net/libraries/openssl-${opensslversion}.tar.gz | tar -xz \
     && cd openssl-${opensslversion} \
     && ./Configure "${OSSL_TARGET}" \
         no-shared no-tests no-docs no-apps \

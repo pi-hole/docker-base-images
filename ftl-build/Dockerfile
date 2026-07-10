@@ -5,6 +5,7 @@ ARG readlineversion=8.3
 ARG termcapversion=1.3.1-patched
 ARG nettleversion=3.10.2
 ARG mbedtlsversion=4.0.0
+ARG opensslversion=3.5.7
 ARG BATS_CORE_VER=v1.13.0
 ARG BATS_SUPPORT_VER=v0.3.0
 ARG BATS_ASSERT_VER=v2.2.4
@@ -96,6 +97,40 @@ RUN curl -sSL https://ftl.pi-hole.net/libraries/mbedtls-${mbedtlsversion}.tar.bz
     && cd .. \
     && rm -r mbedtls-${mbedtlsversion}
 
+# Build static OpenSSL 3.5 LTS (TLS for civetweb + DoT/DoH, and native QUIC for
+# the future DoQ/DoH3 work).
+# Trimmed for binary size: drop the legacy provider, unused protocols/ciphers,
+# engines and DSO. QUIC stays enabled (default in 3.5). no-deprecated is left
+# off on purpose: it saves very little and would require a civetweb patch
+# (SSL_library_init, SSL_get_peer_certificate) to keep compiling.
+# Pick the OpenSSL target from TARGETPLATFORM: ./config guesses it from `uname`,
+# which is wrong whenever the container arch differs from the build host kernel
+# (386 on a 64-bit kernel, the 32-bit ARM variants on an arm64 runner, riscv64
+# under QEMU) and yields "64-bit mode not compiled in". Runtime CPU-feature
+# dispatch still handles AES-NI etc., so no further per-arch tuning is needed.
+RUN case "${TARGETPLATFORM}" in \
+        "linux/amd64")   OSSL_TARGET="linux-x86_64"    ;; \
+        "linux/386")     OSSL_TARGET="linux-x86"       ;; \
+        "linux/arm/v6")  OSSL_TARGET="linux-armv4"     ;; \
+        "linux/arm/v7")  OSSL_TARGET="linux-armv4"     ;; \
+        "linux/arm64")   OSSL_TARGET="linux-aarch64"   ;; \
+        "linux/riscv64") OSSL_TARGET="linux64-riscv64" ;; \
+        *) echo "unsupported TARGETPLATFORM: ${TARGETPLATFORM}" >&2; exit 1 ;; \
+    esac \
+    && curl -sSL https://ftl.pi-hole.net/libraries/openssl-${opensslversion}.tar.gz | tar -xz \
+    && cd openssl-${opensslversion} \
+    && ./Configure "${OSSL_TARGET}" \
+        no-shared no-tests no-docs no-apps \
+        no-legacy no-comp no-dtls no-ssl3 \
+        no-psk no-srp no-idea no-rc2 no-rc4 no-rc5 no-md4 no-mdc2 no-whirlpool \
+        no-engine no-dso \
+        --prefix=/usr/local --libdir=lib --openssldir=/usr/local/ssl \
+    && make -j $(nproc) \
+    && make install_dev \
+    && ls -l /usr/local/lib/libssl.a /usr/local/lib/libcrypto.a \
+    && cd .. \
+    && rm -r openssl-${opensslversion}
+
 # Build static libbacktrace
 RUN git clone https://github.com/ianlancetaylor/libbacktrace.git \
     && cd libbacktrace \
@@ -135,7 +170,7 @@ RUN sed -i '/buffer_with_truncation /d' /bats/bats-core/libexec/bats-core/bats-f
 # Run the full test suite to ensure that the container is still capable of running the tests
 RUN git clone https://github.com/pi-hole/FTL.git --branch "${GIT_BRANCH}" \
     && cd FTL \
-    && bash build.sh "-DSTATIC=${STATIC}" \
+    && bash build.sh "-DSTATIC=${STATIC} -DBUILD_TAR_REGRESSION=ON -DBUILD_GZIP_REGRESSION=ON -DBUILD_DOTDOH_REGRESSION=ON" \
     && readelf -A ./pihole-FTL \
     && readelf -l ./pihole-FTL \
     && bash test/arch_test.sh \

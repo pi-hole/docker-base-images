@@ -3,8 +3,6 @@ on:
   push:
     branches:
       - '**'
-    tags:
-      - '**'
   pull_request:
   workflow_dispatch:
   release:
@@ -52,6 +50,7 @@ jobs:
       - smoke-tests
     permissions:
       contents: read # same as global permissions
+      id-token: write # sign the GHA cache; build-and-push (which also has id-token) requires signed cache entries and rebuilds from scratch without this
     with:
       setup-qemu: true
       cache: true

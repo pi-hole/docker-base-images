@@ -1,6 +1,3 @@
-FROM alpine:3.24 AS build
-
-ARG TARGETPLATFORM
 ARG readlineversion=8.3
 ARG termcapversion=1.3.1-patched
 ARG nettleversion=3.10.2
@@ -11,7 +8,15 @@ ARG BATS_SUPPORT_VER=v0.3.0
 ARG BATS_ASSERT_VER=v2.2.4
 ARG BATS_FILE_VER=v0.4.0
 
-RUN apk add --no-cache \
+FROM alpine:3.24 AS base
+
+# apk uses a BuildKit cache mount instead of --no-cache so downloaded packages are
+# reused across builds rather than bloating the layer. Intentional tradeoff: without
+# --no-cache the index is no longer force-refreshed each build, so package versions
+# can go stale between cache-mount evictions. Acceptable for a build toolchain pinned
+# to a specific alpine tag.
+RUN --mount=type=cache,target=/var/cache/apk \
+    apk add \
         alpine-sdk \
         bash \
         bind-tools \
@@ -49,11 +54,10 @@ RUN apk add --no-cache \
         xxd \
         zip
 
-ENV STATIC=true
-ENV TEST=true
-
 # As of Alpine 3.21 (Dec 2024), we need to patch the termcap library to include
 # the standard headers as well as unistd.h for the write function
+FROM base AS termcap-build
+ARG termcapversion
 RUN curl -sSL https://ftl.pi-hole.net/libraries/termcap-${termcapversion}.tar.gz | tar -xz \
     && cd termcap-${termcapversion} \
     && ./configure --enable-static --disable-shared --disable-doc --without-examples \
@@ -64,6 +68,9 @@ RUN curl -sSL https://ftl.pi-hole.net/libraries/termcap-${termcapversion}.tar.gz
     && cd .. \
     && rm -r termcap-${termcapversion}
 
+FROM base AS readline-build
+ARG readlineversion
+COPY --from=termcap-build /usr/local/ /usr/local/
 RUN curl -sSL https://ftl.pi-hole.net/libraries/readline-${readlineversion}.tar.gz | tar -xz \
     && cd readline-${readlineversion} \
     && ./configure --enable-static --disable-shared --disable-install-examples \
@@ -73,6 +80,8 @@ RUN curl -sSL https://ftl.pi-hole.net/libraries/readline-${readlineversion}.tar.
     && cd .. \
     && rm -r readline-${readlineversion}
 
+FROM base AS nettle-build
+ARG nettleversion
 RUN curl -sSL https://ftl.pi-hole.net/libraries/nettle-${nettleversion}.tar.gz | tar -xz \
     && cd nettle-${nettleversion} \
     && ./configure --enable-static --disable-shared --disable-openssl --disable-mini-gmp -disable-gcov --disable-documentation \
@@ -83,6 +92,9 @@ RUN curl -sSL https://ftl.pi-hole.net/libraries/nettle-${nettleversion}.tar.gz |
 # Build static mbedTLS with pthread support
 # Disable AESNI on linux/386 asit would possibly result in an incompatible
 # binary in processors lacking the AESNI and SSE2 instruction sets
+FROM base AS mbedtls-build
+ARG TARGETPLATFORM
+ARG mbedtlsversion
 RUN curl -sSL https://ftl.pi-hole.net/libraries/mbedtls-${mbedtlsversion}.tar.bz2 | tar -xj \
     && cd mbedtls-${mbedtlsversion} \
     && sed -i '/#define MBEDTLS_THREADING_C/s*^//**g' tf-psa-crypto/include/psa/crypto_config.h \
@@ -108,6 +120,9 @@ RUN curl -sSL https://ftl.pi-hole.net/libraries/mbedtls-${mbedtlsversion}.tar.bz
 # (386 on a 64-bit kernel, the 32-bit ARM variants on an arm64 runner, riscv64
 # under QEMU) and yields "64-bit mode not compiled in". Runtime CPU-feature
 # dispatch still handles AES-NI etc., so no further per-arch tuning is needed.
+FROM base AS openssl-build
+ARG TARGETPLATFORM
+ARG opensslversion
 RUN case "${TARGETPLATFORM}" in \
         "linux/amd64")   OSSL_TARGET="linux-x86_64"    ;; \
         "linux/386")     OSSL_TARGET="linux-x86"       ;; \
@@ -132,6 +147,7 @@ RUN case "${TARGETPLATFORM}" in \
     && rm -r openssl-${opensslversion}
 
 # Build static libbacktrace
+FROM base AS libbacktrace-build
 RUN git clone https://github.com/ianlancetaylor/libbacktrace.git \
     && cd libbacktrace \
     && ./configure --enable-static --disable-shared \
@@ -139,11 +155,31 @@ RUN git clone https://github.com/ianlancetaylor/libbacktrace.git \
     && cd .. \
     && rm -r libbacktrace
 
-# Install bats-core directly into the build image
+# Install bats-core, plus the bats-support/bats-assert/bats-file helper
+# libraries FTL's test suite loads via BATS_LIB_PATH
+FROM base AS bats-build
+ARG BATS_CORE_VER
+ARG BATS_SUPPORT_VER
+ARG BATS_ASSERT_VER
+ARG BATS_FILE_VER
 RUN git clone --depth=1 --single-branch --branch "${BATS_CORE_VER}" https://github.com/bats-core/bats-core.git /bats/bats-core \
   && git clone --depth=1 --single-branch --branch "${BATS_SUPPORT_VER}" https://github.com/bats-core/bats-support /bats/bats-support \
   && git clone --depth=1 --single-branch --branch "${BATS_ASSERT_VER}" https://github.com/bats-core/bats-assert  /bats/bats-assert \
   && git clone --depth=1 --single-branch --branch "${BATS_FILE_VER}" https://github.com/bats-core/bats-file    /bats/bats-file
+
+FROM base AS build
+
+ENV STATIC=true
+ENV TEST=true
+
+COPY --link --from=termcap-build /usr/local/ /usr/local/
+COPY --link --from=readline-build /usr/local/ /usr/local/
+COPY --link --from=nettle-build /usr/local/ /usr/local/
+COPY --link --from=mbedtls-build /usr/local/ /usr/local/
+COPY --link --from=openssl-build /usr/local/ /usr/local/
+COPY --link --from=libbacktrace-build /usr/local/ /usr/local/
+COPY --link --from=bats-build /bats /bats
+
 ENV BATS=/bats/bats-core/bin/bats
 ENV BATS_LIB_PATH=/bats/
 
@@ -158,11 +194,15 @@ ARG CI_ARCH="$TARGETPLATFORM"
 ARG GIT_TAG="test-build"
 ARG GIT_BRANCH="special/CI_development"
 
-
 # Test compile FTL's development branch, the result is removed from the final container
 # Run the full test suite to ensure that the container is still capable of running the tests
-# Ensure that the TERM environment variable is set for BATS color output
-RUN git clone https://github.com/pi-hole/FTL.git --branch "${GIT_BRANCH}" \
+# CACHEBUST is fed a per-run value so this layer never comes from cache: it is a
+# validation gate, not a build artifact, and must re-test against current FTL every
+# time (a cache hit here would silently skip building/testing FTL entirely).
+# TERM is set for BATS colour output during the test run.
+ARG CACHEBUST
+RUN echo "Validating toolchain against FTL (build ${CACHEBUST})" \
+    && git clone https://github.com/pi-hole/FTL.git --branch "${GIT_BRANCH}" \
     && cd FTL \
     && bash build.sh "-DSTATIC=${STATIC} -DBUILD_TAR_REGRESSION=ON -DBUILD_GZIP_REGRESSION=ON -DBUILD_DOTDOH_REGRESSION=ON" \
     && readelf -A ./pihole-FTL \

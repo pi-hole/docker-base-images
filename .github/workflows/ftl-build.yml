@@ -44,13 +44,27 @@ jobs:
         name: "Expose registry variables for reusable workflow"
         run: echo "Exposing env vars for reusable workflow"
 
+  # Build and test the toolchain (target: test, which extends target: build with a
+  # full FTL clone/compile/test cycle to prove the toolchain works), then publish
+  # that same image when DO_DEPLOY is true. This used to be two jobs: a push: false
+  # build-and-test, and a separate build-and-push that rebuilt target: build from
+  # scratch to publish, relying on importing cache the first job wrote seconds
+  # earlier. GitHub's cache signing is too slow for that same-run handoff, so the
+  # push job silently rebuilt everything anyway. Building once and conditionally
+  # pushing the result avoids the handoff entirely.
+  #
+  # The published image is the test target, so it keeps ENV TARGETPLATFORM and the
+  # inert leftover state from the FTL test run (the checkout is removed, but files
+  # build.sh/run.sh write elsewhere are not). Harmless for a build harness: nothing
+  # in FTL's build reads it, and run.sh recreates its own state on each use.
   build-and-test:
     uses: docker/github-builder/.github/workflows/build.yml@3415a188caae9a0da7fba83bc06985776e0b1790 #v1.14.0
     needs:
       - smoke-tests
     permissions:
       contents: read # same as global permissions
-      id-token: write # sign the GHA cache; build-and-push (which also has id-token) requires signed cache entries and rebuilds from scratch without this
+      id-token: write # sign the GHA cache, and sign attestations when pushing
+      packages: write # required to push to GHCR when DO_DEPLOY
     with:
       setup-qemu: true
       cache: true
@@ -61,39 +75,15 @@ jobs:
       output: image
       target: test
       platforms: linux/amd64,linux/386,linux/arm/v6,linux/arm/v7,linux/arm64,linux/riscv64
-      push: false
-      meta-images: |
-        ${{ needs.smoke-tests.outputs.DOCKER_REGISTRY_IMAGE }}
-        ${{ needs.smoke-tests.outputs.GITHUB_REGISTRY_IMAGE }}
-
-  build-and-push:
-    if: needs.smoke-tests.outputs.DO_DEPLOY == 'true'
-    needs:  [smoke-tests, build-and-test]
-    uses: docker/github-builder/.github/workflows/build.yml@3415a188caae9a0da7fba83bc06985776e0b1790 #v1.14.0
-    permissions:
-      contents: read # same as global permissions
-      id-token: write # for signing attestation(s) with GitHub OIDC Token
-      packages: write # required to push to GHCR
-    with:
-      setup-qemu: true
-      cache: true
-      cache-scope: build
-      cache-mode: max
-      context: ftl-build
-      fail-fast: true
-      output: image
-      target: build
-      platforms: linux/amd64,linux/386,linux/arm/v6,linux/arm/v7,linux/arm64,linux/riscv64
-      push: true
+      push: ${{ needs.smoke-tests.outputs.DO_DEPLOY == 'true' }}
       set-meta-labels: true
       meta-images: |
         ${{ needs.smoke-tests.outputs.DOCKER_REGISTRY_IMAGE }}
         ${{ needs.smoke-tests.outputs.GITHUB_REGISTRY_IMAGE }}
-      # meta-tags:
-        # type=schedule, pattern=nightly means that a "nightly" tag is applied when the workflow is triggered by a schedule event
-        # type=raw,value=nightly means that a "nightly" tag is applied when the workflow is triggerd by a push to a branch (enabled only for master branch to avoid tagging every push to other branches with "nightly")
-        # type=ref,event=branch means that a tag is applied when the workflow is triggered by a push to a branch (enabled only for non-master branches to avoid tagging every push to master branch with the branch name)
-        # type=ref,event=tag means that a tag is applied when the workflow is triggered by a push to a tag
+      # type=schedule,pattern=nightly      -> "nightly" on the weekly scheduled run
+      # type=raw,value=nightly (master)    -> "nightly" on pushes to master
+      # type=ref,event=branch (non-master) -> the branch name on pushes to other branches
+      # type=ref,event=tag                 -> the tag on a release
       meta-tags: |
             type=schedule,pattern=nightly
             type=raw,value=nightly,enable=${{ github.ref == 'refs/heads/master' }}

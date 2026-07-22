@@ -40,6 +40,7 @@ RUN apk add --no-cache \
         pdns-doc \
         pdns-recursor \
         perl \
+        py3-aioquic \
         py3-dnspython \
         py3-jinja2 \
         py3-jsonschema \

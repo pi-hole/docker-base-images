@@ -5,7 +5,10 @@ ARG readlineversion=8.3
 ARG termcapversion=1.3.1-patched
 ARG nettleversion=3.10.2
 ARG mbedtlsversion=4.0.0
-ARG opensslversion=3.5.7
+ARG opensslversion=4.0.0
+ARG nghttp2version=1.69.0
+ARG nghttp3version=1.17.0
+ARG ngtcp2version=1.24.0
 ARG BATS_CORE_VER=v1.14.0
 ARG BATS_SUPPORT_VER=v0.3.0
 ARG BATS_ASSERT_VER=v2.2.4
@@ -97,12 +100,14 @@ RUN curl -sSL https://ftl.pi-hole.net/libraries/mbedtls-${mbedtlsversion}.tar.bz
     && cd .. \
     && rm -r mbedtls-${mbedtlsversion}
 
-# Build static OpenSSL 3.5 LTS (TLS for civetweb + DoT/DoH, and native QUIC for
-# the future DoQ/DoH3 work).
-# Trimmed for binary size: drop the legacy provider, unused protocols/ciphers,
-# engines and DSO. QUIC stays enabled (default in 3.5). no-deprecated is left
-# off on purpose: it saves very little and would require a civetweb patch
-# (SSL_library_init, SSL_get_peer_certificate) to keep compiling.
+# Build static OpenSSL 4.0 (TLS for civetweb + DoT/DoH, and native QUIC plus the
+# SSL_get_peer_addr API the future DoQ/DoH3 work needs).
+# Trimmed for binary size: drop the legacy provider, unused protocols/ciphers
+# and DSO. QUIC stays enabled (default since 3.5). no-deprecated is left off on
+# purpose: it saves very little and would require a civetweb patch
+# (SSL_library_init, SSL_get_peer_certificate) to keep compiling. no-ssl3 /
+# no-engine are not passed: SSLv3 and the ENGINE API are already gone in 4.0, so
+# both are only accepted as deprecated Configure options.
 # Pick the OpenSSL target from TARGETPLATFORM: ./config guesses it from `uname`,
 # which is wrong whenever the container arch differs from the build host kernel
 # (386 on a 64-bit kernel, the 32-bit ARM variants on an arm64 runner, riscv64
@@ -121,15 +126,43 @@ RUN case "${TARGETPLATFORM}" in \
     && cd openssl-${opensslversion} \
     && ./Configure "${OSSL_TARGET}" \
         no-shared no-tests no-docs no-apps \
-        no-legacy no-comp no-dtls no-ssl3 \
+        no-legacy no-comp no-dtls \
         no-psk no-srp no-idea no-rc2 no-rc4 no-rc5 no-md4 no-mdc2 no-whirlpool \
-        no-engine no-dso \
+        no-dso \
         --prefix=/usr/local --libdir=lib --openssldir=/usr/local/ssl \
     && make -j $(nproc) \
     && make install_dev \
     && ls -l /usr/local/lib/libssl.a /usr/local/lib/libcrypto.a \
     && cd .. \
     && rm -r openssl-${opensslversion}
+
+# Static HTTP/2, HTTP/3 and QUIC libraries. Library-only builds
+# (--enable-lib-only) to drop the apps and their extra dependencies.
+RUN curl -sSL https://ftl.pi-hole.net/libraries/nghttp2-${nghttp2version}.tar.gz | tar -xz \
+    && cd nghttp2-${nghttp2version} \
+    && ./configure --enable-lib-only --enable-static --disable-shared \
+    && make -j $(nproc) install \
+    && ls -l /usr/local/lib/libnghttp2.a \
+    && cd .. \
+    && rm -r nghttp2-${nghttp2version}
+
+RUN curl -sSL https://ftl.pi-hole.net/libraries/nghttp3-${nghttp3version}.tar.gz | tar -xz \
+    && cd nghttp3-${nghttp3version} \
+    && ./configure --enable-lib-only --enable-static --disable-shared \
+    && make -j $(nproc) install \
+    && ls -l /usr/local/lib/libnghttp3.a \
+    && cd .. \
+    && rm -r nghttp3-${nghttp3version}
+
+# ngtcp2 after OpenSSL: --with-openssl builds the "ossl" crypto backend
+# (libngtcp2_crypto_ossl) against the static OpenSSL 4.0 above.
+RUN curl -sSL https://ftl.pi-hole.net/libraries/ngtcp2-${ngtcp2version}.tar.gz | tar -xz \
+    && cd ngtcp2-${ngtcp2version} \
+    && PKG_CONFIG_PATH=/usr/local/lib/pkgconfig ./configure --enable-lib-only --enable-static --disable-shared --with-openssl \
+    && make -j $(nproc) install \
+    && ls -l /usr/local/lib/libngtcp2.a /usr/local/lib/libngtcp2_crypto_ossl.a \
+    && cd .. \
+    && rm -r ngtcp2-${ngtcp2version}
 
 # Build static libbacktrace
 RUN git clone https://github.com/ianlancetaylor/libbacktrace.git \

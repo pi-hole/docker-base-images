@@ -196,8 +196,13 @@ ARG GIT_BRANCH="special/CI_development"
 
 # Test compile FTL's development branch, the result is removed from the final container
 # Run the full test suite to ensure that the container is still capable of running the tests
-# Ensure that the TERM environment variable is set for BATS color output
-RUN git clone https://github.com/pi-hole/FTL.git --branch "${GIT_BRANCH}" \
+# CACHEBUST is fed a per-run value so this layer never comes from cache: it is a
+# validation gate, not a build artifact, and must re-test against current FTL every
+# time (a cache hit here would silently skip building/testing FTL entirely).
+# TERM is set for BATS colour output during the test run.
+ARG CACHEBUST
+RUN echo "Validating toolchain against FTL (build ${CACHEBUST})" \
+    && git clone https://github.com/pi-hole/FTL.git --branch "${GIT_BRANCH}" \
     && cd FTL \
     && bash build.sh "-DSTATIC=${STATIC} -DBUILD_TAR_REGRESSION=ON -DBUILD_GZIP_REGRESSION=ON -DBUILD_DOTDOH_REGRESSION=ON" \
     && readelf -A ./pihole-FTL \

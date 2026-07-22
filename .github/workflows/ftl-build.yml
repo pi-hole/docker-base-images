@@ -75,6 +75,10 @@ jobs:
       output: image
       target: test
       platforms: linux/amd64,linux/386,linux/arm/v6,linux/arm/v7,linux/arm64,linux/riscv64
+      # unique per run (and per re-run attempt) so the FTL build/test layer is never
+      # served from cache - it must re-validate against current FTL every time
+      build-args: |
+        CACHEBUST=${{ github.run_id }}-${{ github.run_attempt }}
       push: ${{ needs.smoke-tests.outputs.DO_DEPLOY == 'true' }}
       set-meta-labels: true
       meta-images: |

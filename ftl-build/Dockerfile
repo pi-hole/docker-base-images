@@ -6,7 +6,7 @@ ARG termcapversion=1.3.1-patched
 ARG nettleversion=3.10.2
 ARG mbedtlsversion=4.0.0
 ARG opensslversion=3.5.7
-ARG BATS_CORE_VER=v1.13.0
+ARG BATS_CORE_VER=v1.14.0
 ARG BATS_SUPPORT_VER=v0.3.0
 ARG BATS_ASSERT_VER=v2.2.4
 ARG BATS_FILE_VER=v0.4.0
@@ -158,22 +158,16 @@ ARG CI_ARCH="$TARGETPLATFORM"
 ARG GIT_TAG="test-build"
 ARG GIT_BRANCH="special/CI_development"
 
-# Ensure that the TERM environment variable is set
-ENV TERM=${TERM:-xterm}
-
-# Monkeypatch BATS to remove duplicate output of starting and finished test
-# BATS uses ANSI escape codes to overwrite the line after the test has finished
-# This is not supported by Github Actions as it does not provide a TTY to the docker build container
-RUN sed -i '/buffer_with_truncation /d' /bats/bats-core/libexec/bats-core/bats-format-pretty
 
 # Test compile FTL's development branch, the result is removed from the final container
 # Run the full test suite to ensure that the container is still capable of running the tests
+# Ensure that the TERM environment variable is set for BATS color output
 RUN git clone https://github.com/pi-hole/FTL.git --branch "${GIT_BRANCH}" \
     && cd FTL \
     && bash build.sh "-DSTATIC=${STATIC} -DBUILD_TAR_REGRESSION=ON -DBUILD_GZIP_REGRESSION=ON -DBUILD_DOTDOH_REGRESSION=ON" \
     && readelf -A ./pihole-FTL \
     && readelf -l ./pihole-FTL \
     && bash test/arch_test.sh \
-    && bash test/run.sh \
+    && TERM=${TERM:-xterm} bash test/run.sh \
     && cd .. \
     && rm -r FTL

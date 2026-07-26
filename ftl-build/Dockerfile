@@ -56,11 +56,15 @@ RUN apk add --no-cache \
 ENV STATIC=true
 ENV TEST=true
 
+# Build every bundled static library with per-function/data sections so FTL
+# can drop unreferenced code at link time with -Wl,--gc-sections.
+ENV SECTION_FLAGS="-ffunction-sections -fdata-sections"
+
 # As of Alpine 3.21 (Dec 2024), we need to patch the termcap library to include
 # the standard headers as well as unistd.h for the write function
 RUN curl -sSL https://ftl.pi-hole.net/libraries/termcap-${termcapversion}.tar.gz | tar -xz \
     && cd termcap-${termcapversion} \
-    && ./configure --enable-static --disable-shared --disable-doc --without-examples \
+    && CFLAGS="-O2 ${SECTION_FLAGS}" ./configure --enable-static --disable-shared --disable-doc --without-examples \
     && sed -i '1i #define STDC_HEADERS 1\n#include <unistd.h>' termcap.c tparam.c \
     && make -j $(nproc) \
     && make install \
@@ -70,7 +74,7 @@ RUN curl -sSL https://ftl.pi-hole.net/libraries/termcap-${termcapversion}.tar.gz
 
 RUN curl -sSL https://ftl.pi-hole.net/libraries/readline-${readlineversion}.tar.gz | tar -xz \
     && cd readline-${readlineversion} \
-    && ./configure --enable-static --disable-shared --disable-install-examples \
+    && CFLAGS="-O2 ${SECTION_FLAGS}" ./configure --enable-static --disable-shared --disable-install-examples \
     && make -j $(nproc) \
     && make install-static \
     && ls /usr/local/lib/ \
@@ -79,7 +83,7 @@ RUN curl -sSL https://ftl.pi-hole.net/libraries/readline-${readlineversion}.tar.
 
 RUN curl -sSL https://ftl.pi-hole.net/libraries/nettle-${nettleversion}.tar.gz | tar -xz \
     && cd nettle-${nettleversion} \
-    && ./configure --enable-static --disable-shared --disable-openssl --disable-mini-gmp -disable-gcov --disable-documentation \
+    && CFLAGS="-O2 ${SECTION_FLAGS}" ./configure --enable-static --disable-shared --disable-openssl --disable-mini-gmp -disable-gcov --disable-documentation \
     && make -j $(nproc) install \
     && cd .. \
     && rm -r nettle-${nettleversion}
@@ -95,7 +99,7 @@ RUN curl -sSL https://ftl.pi-hole.net/libraries/mbedtls-${mbedtlsversion}.tar.bz
          && echo "BUILDING WITHOUT AESNI SUPPORT" \
          && sed -i '/#define MBEDTLS_AESNI_C/s*^*//*g' include/mbedtls/mbedtls_config.h \
          || echo "BUILDING WITH AESNI SUPPORT" ) \
-    && cmake -S . -B build -DCMAKE_C_FLAGS="-fomit-frame-pointer" \
+    && cmake -S . -B build -DCMAKE_C_FLAGS="-fomit-frame-pointer ${SECTION_FLAGS}" \
     && cmake --build build -j $(nproc) \
     && cmake --install build \
     && cd .. \
@@ -130,6 +134,7 @@ RUN case "${TARGETPLATFORM}" in \
         no-legacy no-comp no-dtls \
         no-psk no-srp no-idea no-rc2 no-rc4 no-rc5 no-md4 no-mdc2 no-whirlpool \
         no-dso \
+        ${SECTION_FLAGS} \
         --prefix=/usr/local --libdir=lib --openssldir=/usr/local/ssl \
     && make -j $(nproc) \
     && make install_dev \
@@ -141,7 +146,7 @@ RUN case "${TARGETPLATFORM}" in \
 # (--enable-lib-only) to drop the apps and their extra dependencies.
 RUN curl -sSL https://ftl.pi-hole.net/libraries/nghttp2-${nghttp2version}.tar.gz | tar -xz \
     && cd nghttp2-${nghttp2version} \
-    && ./configure --enable-lib-only --enable-static --disable-shared \
+    && CFLAGS="-O2 ${SECTION_FLAGS}" ./configure --enable-lib-only --enable-static --disable-shared \
     && make -j $(nproc) install \
     && ls -l /usr/local/lib/libnghttp2.a \
     && cd .. \
@@ -149,7 +154,7 @@ RUN curl -sSL https://ftl.pi-hole.net/libraries/nghttp2-${nghttp2version}.tar.gz
 
 RUN curl -sSL https://ftl.pi-hole.net/libraries/nghttp3-${nghttp3version}.tar.gz | tar -xz \
     && cd nghttp3-${nghttp3version} \
-    && ./configure --enable-lib-only --enable-static --disable-shared \
+    && CFLAGS="-O2 ${SECTION_FLAGS}" ./configure --enable-lib-only --enable-static --disable-shared \
     && make -j $(nproc) install \
     && ls -l /usr/local/lib/libnghttp3.a \
     && cd .. \
@@ -159,7 +164,7 @@ RUN curl -sSL https://ftl.pi-hole.net/libraries/nghttp3-${nghttp3version}.tar.gz
 # (libngtcp2_crypto_ossl) against the static OpenSSL 4.0 above.
 RUN curl -sSL https://ftl.pi-hole.net/libraries/ngtcp2-${ngtcp2version}.tar.gz | tar -xz \
     && cd ngtcp2-${ngtcp2version} \
-    && PKG_CONFIG_PATH=/usr/local/lib/pkgconfig ./configure --enable-lib-only --enable-static --disable-shared --with-openssl \
+    && PKG_CONFIG_PATH=/usr/local/lib/pkgconfig CFLAGS="-O2 ${SECTION_FLAGS}" ./configure --enable-lib-only --enable-static --disable-shared --with-openssl \
     && make -j $(nproc) install \
     && ls -l /usr/local/lib/libngtcp2.a /usr/local/lib/libngtcp2_crypto_ossl.a \
     && cd .. \
@@ -168,7 +173,7 @@ RUN curl -sSL https://ftl.pi-hole.net/libraries/ngtcp2-${ngtcp2version}.tar.gz |
 # Build static libbacktrace
 RUN git clone https://github.com/ianlancetaylor/libbacktrace.git \
     && cd libbacktrace \
-    && ./configure --enable-static --disable-shared \
+    && CFLAGS="-O2 ${SECTION_FLAGS}" ./configure --enable-static --disable-shared \
     && make -j $(nproc) install \
     && cd .. \
     && rm -r libbacktrace

@@ -242,11 +242,18 @@ ARG CI_ARCH="$TARGETPLATFORM"
 ARG GIT_TAG="test-build"
 ARG GIT_BRANCH="special/CI_development"
 
-# Test compile FTL's development branch, the result is removed from the final container
-# Run the full test suite to ensure that the container is still capable of running the tests
-# CACHEBUST is fed a per-run value so this layer never comes from cache: it is a
-# validation gate, not a build artifact, and must re-test against current FTL every
-# time (a cache hit here would silently skip building/testing FTL entirely).
+# Compile FTL's development branch and run the full test suite, to prove the
+# toolchain can still build and test FTL. Nothing here is kept - this stage is a
+# gate, not an artifact - so the checkout and everything run.sh writes outside it
+# (/etc/pihole, /var/log/pihole, /etc/dnsmasq.d, /var/lib/powerdns, the pihole
+# user, ...) is simply left in place and discarded with the stage.
+#
+# Build this target directly to debug a failure locally: the FTL tree and all
+# logs survive for inspection.
+#
+# CACHEBUST is fed a per-run value so this layer never comes from cache - it must
+# re-validate against current FTL every time, and a cache hit here would silently
+# skip building and testing FTL entirely.
 # TERM is set for BATS colour output during the test run.
 ARG CACHEBUST
 RUN echo "Validating toolchain against FTL (build ${CACHEBUST})" \
@@ -258,4 +265,19 @@ RUN echo "Validating toolchain against FTL (build ${CACHEBUST})" \
     && bash test/arch_test.sh \
     && TERM=${TERM:-xterm} bash test/run.sh \
     && cd .. \
-    && rm -r FTL
+    && echo "${CACHEBUST}" > /toolchain-validated
+
+# The published image: the toolchain exactly as `build` produced it, with none of
+# the state the test run leaves behind.
+#
+# Dockerfiles have no way to say "this stage depends on that one", so the COPY is
+# what pulls `test` into the build graph - without it BuildKit would see an
+# orphaned stage, never run it, and happily publish an untested toolchain. Since
+# the copy needs test's filesystem to resolve, and test's CACHEBUST layer can
+# never be served from cache, FTL is rebuilt and retested on every build and a
+# failure there fails this target before it exists.
+#
+# /toolchain-validated holds the CACHEBUST value, so the image also records which
+# CI run validated it.
+FROM build AS publish
+COPY --from=test /toolchain-validated /toolchain-validated

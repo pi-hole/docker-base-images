@@ -44,9 +44,7 @@ jobs:
         name: "Expose registry variables for reusable workflow"
         run: echo "Exposing env vars for reusable workflow"
 
-  # Build and test the toolchain (target: test, which extends target: build with a
-  # full FTL clone/compile/test cycle to prove the toolchain works), then publish
-  # that same image when DO_DEPLOY is true.
+  # Build and test the toolchain, then publish it when DO_DEPLOY is true.
   #
   # This used to be two jobs: a push: false build-and-test, and a separate
   # build-and-push that rebuilt target: build to publish, importing the cache the
@@ -54,13 +52,18 @@ jobs:
   # pass over all six platforms purely to re-materialise an image we had already
   # built, and it degrades to a full rebuild for any platform whose cache export
   # failed. One build, conditionally pushed, removes both the second pass and the
-  # dependency on the handoff, and makes the published image provably the one that
-  # was tested.
+  # dependency on the handoff.
   #
-  # The published image is the test target, so it keeps ENV TARGETPLATFORM and the
-  # inert leftover state from the FTL test run (the checkout is removed, but files
-  # build.sh/run.sh write elsewhere are not). Harmless for a build harness: nothing
-  # in FTL's build reads it, and run.sh recreates its own state on each use.
+  # target: publish is the toolchain as target: build produces it - the same image
+  # contents this workflow published before - and it depends on target: test, which
+  # runs the full FTL clone/compile/test cycle. So the test still gates the push,
+  # but the state that run.sh scatters across the filesystem stays in the discarded
+  # test stage instead of shipping to users. See ftl-build/Dockerfile.
+  #
+  # Note packages: write is now held for every run rather than only for deploys,
+  # since GitHub does not allow expressions in `permissions`. In practice this
+  # grants nothing extra: smoke-tests only runs pull_request for forks, whose
+  # GITHUB_TOKEN is read-only regardless.
   build-and-test:
     uses: docker/github-builder/.github/workflows/build.yml@3415a188caae9a0da7fba83bc06985776e0b1790 #v1.14.0
     needs:
@@ -77,7 +80,7 @@ jobs:
       context: ftl-build
       fail-fast: true
       output: image
-      target: test
+      target: publish
       platforms: linux/amd64,linux/386,linux/arm/v6,linux/arm/v7,linux/arm64,linux/riscv64
       # unique per run (and per re-run attempt) so the FTL build/test layer is never
       # served from cache - it must re-validate against current FTL every time

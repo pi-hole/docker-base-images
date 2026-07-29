@@ -217,15 +217,15 @@ FROM base AS build
 ENV STATIC=true
 ENV TEST=true
 
-COPY --link --from=termcap-build /usr/local/ /usr/local/
-COPY --link --from=readline-build /usr/local/ /usr/local/
-COPY --link --from=nettle-build /usr/local/ /usr/local/
-COPY --link --from=mbedtls-build /usr/local/ /usr/local/
-COPY --link --from=openssl-build /usr/local/ /usr/local/
-COPY --link --from=nghttp2-build /usr/local/ /usr/local/
-COPY --link --from=nghttp3-build /usr/local/ /usr/local/
-COPY --link --from=ngtcp2-build /usr/local/ /usr/local/
-COPY --link --from=libbacktrace-build /usr/local/ /usr/local/
+COPY --link --parents --from=termcap-build /usr/local/lib /usr/local/include /
+COPY --link --parents --from=readline-build /usr/local/lib /usr/local/include /
+COPY --link --parents --from=nettle-build /usr/local/lib /usr/local/include /
+COPY --link --parents --from=mbedtls-build /usr/local/lib /usr/local/include /
+COPY --link --parents --from=openssl-build /usr/local/lib /usr/local/include /
+COPY --link --parents --from=nghttp2-build /usr/local/lib /usr/local/include /
+COPY --link --parents --from=nghttp3-build /usr/local/lib /usr/local/include /
+COPY --link --parents --from=ngtcp2-build /usr/local/lib /usr/local/include /
+COPY --link --parents --from=libbacktrace-build /usr/local/lib /usr/local/include /
 COPY --link --from=bats-build /bats /bats
 
 ENV BATS=/bats/bats-core/bin/bats

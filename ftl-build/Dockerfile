@@ -6,6 +6,7 @@ ARG opensslversion=4.0.0
 ARG nghttp2version=1.69.0
 ARG nghttp3version=1.17.0
 ARG ngtcp2version=1.24.0
+ARG libjournalversion=0.5
 ARG BATS_CORE_VER=v1.14.0
 ARG BATS_SUPPORT_VER=v0.3.0
 ARG BATS_ASSERT_VER=v2.2.4
@@ -200,6 +201,17 @@ RUN git clone https://github.com/ianlancetaylor/libbacktrace.git \
     && cd .. \
     && rm -r libbacktrace
 
+# Build static libjournal (musl-compatible native journal library)
+FROM base AS libjournal-build
+ARG libjournalversion
+RUN curl -sSL https://github.com/darkexplosiveqwx/libjournal/archive/refs/tags/v${libjournalversion}.tar.gz | tar -xz \
+    && cd libjournal-${libjournalversion} \
+    && cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_ARTIFACT=OFF -DBUILD_STATIC_ARTIFACT=ON -DBUILD_DEMO=OFF -DBUILD_TESTS=OFF \
+    && cmake --build build -j $(nproc) \
+    && cmake --install build \
+    && cd .. \
+    && rm -r libjournal-${libjournalversion}
+
 # Install bats-core, plus the bats-support/bats-assert/bats-file helper
 # libraries FTL's test suite loads via BATS_LIB_PATH
 FROM base AS bats-build
@@ -226,6 +238,7 @@ COPY --link --parents --from=nghttp2-build /usr/local/lib /usr/local/include /
 COPY --link --parents --from=nghttp3-build /usr/local/lib /usr/local/include /
 COPY --link --parents --from=ngtcp2-build /usr/local/lib /usr/local/include /
 COPY --link --parents --from=libbacktrace-build /usr/local/lib /usr/local/include /
+COPY --link --parents --from=libjournal-build /usr/local/lib /usr/local/include /
 COPY --link --from=bats-build /bats /bats
 
 ENV BATS=/bats/bats-core/bin/bats

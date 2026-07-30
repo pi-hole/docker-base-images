@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 ARG readlineversion=8.3
 ARG termcapversion=1.3.1-patched
 ARG nettleversion=3.10.2
@@ -12,13 +13,14 @@ ARG BATS_FILE_VER=v0.4.0
 
 FROM alpine:3.24 AS base
 
-# apk uses a BuildKit cache mount instead of --no-cache so downloaded packages are
-# reused across builds rather than bloating the layer. Intentional tradeoff: without
-# --no-cache the index is no longer force-refreshed each build, so package versions
-# can go stale between cache-mount evictions. Acceptable for a build toolchain pinned
-# to a specific alpine tag.
+# apk uses a BuildKit cache mount so downloaded packages can be reused without
+# baking them into an image layer. In CI, cache-mount contents are not exported
+# with the GHA cache backend by default, so this mostly helps local rebuilds.
+# Always refresh APKINDEX before install: with a warm package cache and a stale
+# index, apk may request package revisions mirrors have already rotated out,
+# causing fetch failures.
 RUN --mount=type=cache,target=/var/cache/apk \
-    apk add \
+    apk add --update-cache \
         alpine-sdk \
         bash \
         bind-tools \
@@ -197,10 +199,9 @@ RUN git clone --depth=1 --single-branch --branch "${BATS_CORE_VER}" https://gith
   && git clone --depth=1 --single-branch --branch "${BATS_ASSERT_VER}" https://github.com/bats-core/bats-assert  /bats/bats-assert \
   && git clone --depth=1 --single-branch --branch "${BATS_FILE_VER}" https://github.com/bats-core/bats-file    /bats/bats-file
 
-FROM base AS build
-
-ENV STATIC=true
-ENV TEST=true
+# The collector stage gathers the static libraries and headers from the build stages above, so they can be copied into the build stage without needing to rebuild them.
+# This is a workaround for BuildKit's lack of support for multi-stage builds with --link: without it, the build stage would need to rebuild all the libraries every time, even if they were already built in previous stages.
+FROM alpine:3.24 AS collector
 
 COPY --link --parents --from=termcap-build /usr/local/lib /usr/local/include /
 COPY --link --parents --from=readline-build /usr/local/lib /usr/local/include /
@@ -210,10 +211,23 @@ COPY --link --parents --from=nghttp2-build /usr/local/lib /usr/local/include /
 COPY --link --parents --from=nghttp3-build /usr/local/lib /usr/local/include /
 COPY --link --parents --from=ngtcp2-build /usr/local/lib /usr/local/include /
 COPY --link --parents --from=libbacktrace-build /usr/local/lib /usr/local/include /
+
+FROM base AS build
+
+ENV STATIC=true
+ENV TEST=true
+
+COPY --link --parents --from=collector /usr/local/lib /usr/local/include /
 COPY --link --from=bats-build /bats /bats
 
 ENV BATS=/bats/bats-core/bin/bats
 ENV BATS_LIB_PATH=/bats/
+
+# Verify the static libraries are present and correct. This uses a POSIX shell
+# loop so it works with Alpine's default /bin/sh (no brace expansion).
+RUN for lib in termcap readline history nettle hogweed ssl crypto nghttp2 nghttp3 ngtcp2 ngtcp2_crypto_ossl backtrace; do \
+            ls -l "/usr/local/lib/lib${lib}.a"; \
+        done
 
 FROM build AS test
 
@@ -239,7 +253,7 @@ ARG GIT_BRANCH="special/CI_development"
 # re-validate against current FTL every time, and a cache hit here would silently
 # skip building and testing FTL entirely.
 # TERM is set for BATS colour output during the test run.
-ARG CACHEBUST
+ARG CACHEBUST=local
 RUN echo "Validating toolchain against FTL (build ${CACHEBUST})" \
     && git clone https://github.com/pi-hole/FTL.git --branch "${GIT_BRANCH}" \
     && cd FTL \

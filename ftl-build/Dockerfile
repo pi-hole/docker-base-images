@@ -57,13 +57,18 @@ RUN --mount=type=cache,target=/var/cache/apk \
         xxd \
         zip
 
+# Build every bundled static library with per-function/data sections so FTL
+# can drop unreferenced code at link time with -Wl,--gc-sections. Set on `base`
+# so every per-library stage inherits it.
+ENV SECTION_FLAGS="-ffunction-sections -fdata-sections"
+
 # As of Alpine 3.21 (Dec 2024), we need to patch the termcap library to include
 # the standard headers as well as unistd.h for the write function
 FROM base AS termcap-build
 ARG termcapversion
 RUN curl -sSL https://ftl.pi-hole.net/libraries/termcap-${termcapversion}.tar.gz | tar -xz \
     && cd termcap-${termcapversion} \
-    && ./configure --enable-static --disable-shared --disable-doc --without-examples \
+    && CFLAGS="-O2 ${SECTION_FLAGS}" ./configure --enable-static --disable-shared --disable-doc --without-examples \
     && sed -i '1i #define STDC_HEADERS 1\n#include <unistd.h>' termcap.c tparam.c \
     && make -j $(nproc) \
     && make install \
@@ -76,7 +81,7 @@ ARG readlineversion
 COPY --from=termcap-build /usr/local/ /usr/local/
 RUN curl -sSL https://ftl.pi-hole.net/libraries/readline-${readlineversion}.tar.gz | tar -xz \
     && cd readline-${readlineversion} \
-    && ./configure --enable-static --disable-shared --disable-install-examples \
+    && CFLAGS="-O2 ${SECTION_FLAGS}" ./configure --enable-static --disable-shared --disable-install-examples \
     && make -j $(nproc) \
     && make install-static \
     && ls /usr/local/lib/ \
@@ -87,7 +92,7 @@ FROM base AS nettle-build
 ARG nettleversion
 RUN curl -sSL https://ftl.pi-hole.net/libraries/nettle-${nettleversion}.tar.gz | tar -xz \
     && cd nettle-${nettleversion} \
-    && ./configure --enable-static --disable-shared --disable-openssl --disable-mini-gmp -disable-gcov --disable-documentation \
+    && CFLAGS="-O2 ${SECTION_FLAGS}" ./configure --enable-static --disable-shared --disable-openssl --disable-mini-gmp -disable-gcov --disable-documentation \
     && make -j $(nproc) install \
     && cd .. \
     && rm -r nettle-${nettleversion}
@@ -124,6 +129,7 @@ RUN case "${TARGETPLATFORM}" in \
         no-legacy no-comp no-dtls \
         no-psk no-srp no-idea no-rc2 no-rc4 no-rc5 no-md4 no-mdc2 no-whirlpool \
         no-dso \
+        ${SECTION_FLAGS} \
         --prefix=/usr/local --libdir=lib --openssldir=/usr/local/ssl \
     && make -j $(nproc) \
     && make install_dev \
@@ -137,7 +143,7 @@ FROM base AS nghttp2-build
 ARG nghttp2version
 RUN curl -sSL https://ftl.pi-hole.net/libraries/nghttp2-${nghttp2version}.tar.gz | tar -xz \
     && cd nghttp2-${nghttp2version} \
-    && ./configure --enable-lib-only --enable-static --disable-shared \
+    && CFLAGS="-O2 ${SECTION_FLAGS}" ./configure --enable-lib-only --enable-static --disable-shared \
     && make -j $(nproc) install \
     && ls -l /usr/local/lib/libnghttp2.a \
     && cd .. \
@@ -147,7 +153,7 @@ FROM base AS nghttp3-build
 ARG nghttp3version
 RUN curl -sSL https://ftl.pi-hole.net/libraries/nghttp3-${nghttp3version}.tar.gz | tar -xz \
     && cd nghttp3-${nghttp3version} \
-    && ./configure --enable-lib-only --enable-static --disable-shared \
+    && CFLAGS="-O2 ${SECTION_FLAGS}" ./configure --enable-lib-only --enable-static --disable-shared \
     && make -j $(nproc) install \
     && ls -l /usr/local/lib/libnghttp3.a \
     && cd .. \
@@ -164,7 +170,7 @@ COPY --from=openssl-build /usr/local/ /usr/local/
 COPY --from=nghttp3-build /usr/local/ /usr/local/
 RUN curl -sSL https://ftl.pi-hole.net/libraries/ngtcp2-${ngtcp2version}.tar.gz | tar -xz \
     && cd ngtcp2-${ngtcp2version} \
-    && PKG_CONFIG_PATH=/usr/local/lib/pkgconfig ./configure --enable-lib-only --enable-static --disable-shared --with-openssl \
+    && PKG_CONFIG_PATH=/usr/local/lib/pkgconfig CFLAGS="-O2 ${SECTION_FLAGS}" ./configure --enable-lib-only --enable-static --disable-shared --with-openssl \
     && make -j $(nproc) install \
     && ls -l /usr/local/lib/libngtcp2.a /usr/local/lib/libngtcp2_crypto_ossl.a \
     && cd .. \
@@ -174,7 +180,7 @@ RUN curl -sSL https://ftl.pi-hole.net/libraries/ngtcp2-${ngtcp2version}.tar.gz |
 FROM base AS libbacktrace-build
 RUN git clone https://github.com/ianlancetaylor/libbacktrace.git \
     && cd libbacktrace \
-    && ./configure --enable-static --disable-shared \
+    && CFLAGS="-O2 ${SECTION_FLAGS}" ./configure --enable-static --disable-shared \
     && make -j $(nproc) install \
     && cd .. \
     && rm -r libbacktrace

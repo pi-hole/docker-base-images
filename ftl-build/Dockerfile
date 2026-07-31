@@ -1,7 +1,6 @@
 ARG readlineversion=8.3
 ARG termcapversion=1.3.1-patched
 ARG nettleversion=3.10.2
-ARG mbedtlsversion=4.0.0
 ARG opensslversion=4.0.0
 ARG nghttp2version=1.69.0
 ARG nghttp3version=1.17.0
@@ -92,26 +91,6 @@ RUN curl -sSL https://ftl.pi-hole.net/libraries/nettle-${nettleversion}.tar.gz |
     && make -j $(nproc) install \
     && cd .. \
     && rm -r nettle-${nettleversion}
-
-# Build static mbedTLS with pthread support
-# Disable AESNI on linux/386 asit would possibly result in an incompatible
-# binary in processors lacking the AESNI and SSE2 instruction sets
-FROM base AS mbedtls-build
-ARG TARGETPLATFORM
-ARG mbedtlsversion
-RUN curl -sSL https://ftl.pi-hole.net/libraries/mbedtls-${mbedtlsversion}.tar.bz2 | tar -xj \
-    && cd mbedtls-${mbedtlsversion} \
-    && sed -i '/#define MBEDTLS_THREADING_C/s*^//**g' tf-psa-crypto/include/psa/crypto_config.h \
-    && sed -i '/#define MBEDTLS_THREADING_PTHREAD/s*^//**g' tf-psa-crypto/include/psa/crypto_config.h \
-    && ( [ "${TARGETPLATFORM}" = "linux/386" ] \
-         && echo "BUILDING WITHOUT AESNI SUPPORT" \
-         && sed -i '/#define MBEDTLS_AESNI_C/s*^*//*g' include/mbedtls/mbedtls_config.h \
-         || echo "BUILDING WITH AESNI SUPPORT" ) \
-    && cmake -S . -B build -DCMAKE_C_FLAGS="-fomit-frame-pointer" \
-    && cmake --build build -j $(nproc) \
-    && cmake --install build \
-    && cd .. \
-    && rm -r mbedtls-${mbedtlsversion}
 
 # Build static OpenSSL 4.0 (TLS for civetweb + DoT/DoH, and native QUIC plus the
 # SSL_get_peer_addr API the future DoQ/DoH3 work needs).
@@ -220,7 +199,6 @@ ENV TEST=true
 COPY --link --parents --from=termcap-build /usr/local/lib /usr/local/include /
 COPY --link --parents --from=readline-build /usr/local/lib /usr/local/include /
 COPY --link --parents --from=nettle-build /usr/local/lib /usr/local/include /
-COPY --link --parents --from=mbedtls-build /usr/local/lib /usr/local/include /
 COPY --link --parents --from=openssl-build /usr/local/lib /usr/local/include /
 COPY --link --parents --from=nghttp2-build /usr/local/lib /usr/local/include /
 COPY --link --parents --from=nghttp3-build /usr/local/lib /usr/local/include /

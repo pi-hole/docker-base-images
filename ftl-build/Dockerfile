@@ -1,10 +1,6 @@
-FROM alpine:3.24 AS build
-
-ARG TARGETPLATFORM
 ARG readlineversion=8.3
 ARG termcapversion=1.3.1-patched
 ARG nettleversion=3.10.2
-ARG mbedtlsversion=4.0.0
 ARG opensslversion=4.0.0
 ARG nghttp2version=1.69.0
 ARG nghttp3version=1.17.0
@@ -14,7 +10,15 @@ ARG BATS_SUPPORT_VER=v0.3.0
 ARG BATS_ASSERT_VER=v2.2.4
 ARG BATS_FILE_VER=v0.4.0
 
-RUN apk add --no-cache \
+FROM alpine:3.24 AS base
+
+# apk uses a BuildKit cache mount instead of --no-cache so downloaded packages are
+# reused across builds rather than bloating the layer. Intentional tradeoff: without
+# --no-cache the index is no longer force-refreshed each build, so package versions
+# can go stale between cache-mount evictions. Acceptable for a build toolchain pinned
+# to a specific alpine tag.
+RUN --mount=type=cache,target=/var/cache/apk \
+    apk add \
         alpine-sdk \
         bash \
         bind-tools \
@@ -53,15 +57,15 @@ RUN apk add --no-cache \
         xxd \
         zip
 
-ENV STATIC=true
-ENV TEST=true
-
 # Build every bundled static library with per-function/data sections so FTL
-# can drop unreferenced code at link time with -Wl,--gc-sections.
+# can drop unreferenced code at link time with -Wl,--gc-sections. Set on `base`
+# so every per-library stage inherits it.
 ENV SECTION_FLAGS="-ffunction-sections -fdata-sections"
 
 # As of Alpine 3.21 (Dec 2024), we need to patch the termcap library to include
 # the standard headers as well as unistd.h for the write function
+FROM base AS termcap-build
+ARG termcapversion
 RUN curl -sSL https://ftl.pi-hole.net/libraries/termcap-${termcapversion}.tar.gz | tar -xz \
     && cd termcap-${termcapversion} \
     && CFLAGS="-O2 ${SECTION_FLAGS}" ./configure --enable-static --disable-shared --disable-doc --without-examples \
@@ -72,6 +76,9 @@ RUN curl -sSL https://ftl.pi-hole.net/libraries/termcap-${termcapversion}.tar.gz
     && cd .. \
     && rm -r termcap-${termcapversion}
 
+FROM base AS readline-build
+ARG readlineversion
+COPY --from=termcap-build /usr/local/ /usr/local/
 RUN curl -sSL https://ftl.pi-hole.net/libraries/readline-${readlineversion}.tar.gz | tar -xz \
     && cd readline-${readlineversion} \
     && CFLAGS="-O2 ${SECTION_FLAGS}" ./configure --enable-static --disable-shared --disable-install-examples \
@@ -81,29 +88,14 @@ RUN curl -sSL https://ftl.pi-hole.net/libraries/readline-${readlineversion}.tar.
     && cd .. \
     && rm -r readline-${readlineversion}
 
+FROM base AS nettle-build
+ARG nettleversion
 RUN curl -sSL https://ftl.pi-hole.net/libraries/nettle-${nettleversion}.tar.gz | tar -xz \
     && cd nettle-${nettleversion} \
     && CFLAGS="-O2 ${SECTION_FLAGS}" ./configure --enable-static --disable-shared --disable-openssl --disable-mini-gmp -disable-gcov --disable-documentation \
     && make -j $(nproc) install \
     && cd .. \
     && rm -r nettle-${nettleversion}
-
-# Build static mbedTLS with pthread support
-# Disable AESNI on linux/386 asit would possibly result in an incompatible
-# binary in processors lacking the AESNI and SSE2 instruction sets
-RUN curl -sSL https://ftl.pi-hole.net/libraries/mbedtls-${mbedtlsversion}.tar.bz2 | tar -xj \
-    && cd mbedtls-${mbedtlsversion} \
-    && sed -i '/#define MBEDTLS_THREADING_C/s*^//**g' tf-psa-crypto/include/psa/crypto_config.h \
-    && sed -i '/#define MBEDTLS_THREADING_PTHREAD/s*^//**g' tf-psa-crypto/include/psa/crypto_config.h \
-    && ( [ "${TARGETPLATFORM}" = "linux/386" ] \
-         && echo "BUILDING WITHOUT AESNI SUPPORT" \
-         && sed -i '/#define MBEDTLS_AESNI_C/s*^*//*g' include/mbedtls/mbedtls_config.h \
-         || echo "BUILDING WITH AESNI SUPPORT" ) \
-    && cmake -S . -B build -DCMAKE_C_FLAGS="-fomit-frame-pointer ${SECTION_FLAGS}" \
-    && cmake --build build -j $(nproc) \
-    && cmake --install build \
-    && cd .. \
-    && rm -r mbedtls-${mbedtlsversion}
 
 # Build static OpenSSL 4.0 (TLS for civetweb + DoT/DoH, and native QUIC plus the
 # SSL_get_peer_addr API the future DoQ/DoH3 work needs).
@@ -118,6 +110,9 @@ RUN curl -sSL https://ftl.pi-hole.net/libraries/mbedtls-${mbedtlsversion}.tar.bz
 # (386 on a 64-bit kernel, the 32-bit ARM variants on an arm64 runner, riscv64
 # under QEMU) and yields "64-bit mode not compiled in". Runtime CPU-feature
 # dispatch still handles AES-NI etc., so no further per-arch tuning is needed.
+FROM base AS openssl-build
+ARG TARGETPLATFORM
+ARG opensslversion
 RUN case "${TARGETPLATFORM}" in \
         "linux/amd64")   OSSL_TARGET="linux-x86_64"    ;; \
         "linux/386")     OSSL_TARGET="linux-x86"       ;; \
@@ -144,6 +139,8 @@ RUN case "${TARGETPLATFORM}" in \
 
 # Static HTTP/2, HTTP/3 and QUIC libraries. Library-only builds
 # (--enable-lib-only) to drop the apps and their extra dependencies.
+FROM base AS nghttp2-build
+ARG nghttp2version
 RUN curl -sSL https://ftl.pi-hole.net/libraries/nghttp2-${nghttp2version}.tar.gz | tar -xz \
     && cd nghttp2-${nghttp2version} \
     && CFLAGS="-O2 ${SECTION_FLAGS}" ./configure --enable-lib-only --enable-static --disable-shared \
@@ -152,6 +149,8 @@ RUN curl -sSL https://ftl.pi-hole.net/libraries/nghttp2-${nghttp2version}.tar.gz
     && cd .. \
     && rm -r nghttp2-${nghttp2version}
 
+FROM base AS nghttp3-build
+ARG nghttp3version
 RUN curl -sSL https://ftl.pi-hole.net/libraries/nghttp3-${nghttp3version}.tar.gz | tar -xz \
     && cd nghttp3-${nghttp3version} \
     && CFLAGS="-O2 ${SECTION_FLAGS}" ./configure --enable-lib-only --enable-static --disable-shared \
@@ -160,8 +159,15 @@ RUN curl -sSL https://ftl.pi-hole.net/libraries/nghttp3-${nghttp3version}.tar.gz
     && cd .. \
     && rm -r nghttp3-${nghttp3version}
 
-# ngtcp2 after OpenSSL: --with-openssl builds the "ossl" crypto backend
-# (libngtcp2_crypto_ossl) against the static OpenSSL 4.0 above.
+# ngtcp2 needs OpenSSL: --with-openssl builds the "ossl" crypto backend
+# (libngtcp2_crypto_ossl) against the static OpenSSL 4.0 above. nghttp3 is copied
+# in as well: it is not needed for --enable-lib-only, but it was present when
+# these three shared a single stage, so it is kept in scope to keep configure's
+# probe results - and therefore the installed artefacts - identical.
+FROM base AS ngtcp2-build
+ARG ngtcp2version
+COPY --from=openssl-build /usr/local/ /usr/local/
+COPY --from=nghttp3-build /usr/local/ /usr/local/
 RUN curl -sSL https://ftl.pi-hole.net/libraries/ngtcp2-${ngtcp2version}.tar.gz | tar -xz \
     && cd ngtcp2-${ngtcp2version} \
     && PKG_CONFIG_PATH=/usr/local/lib/pkgconfig CFLAGS="-O2 ${SECTION_FLAGS}" ./configure --enable-lib-only --enable-static --disable-shared --with-openssl \
@@ -171,6 +177,7 @@ RUN curl -sSL https://ftl.pi-hole.net/libraries/ngtcp2-${ngtcp2version}.tar.gz |
     && rm -r ngtcp2-${ngtcp2version}
 
 # Build static libbacktrace
+FROM base AS libbacktrace-build
 RUN git clone https://github.com/ianlancetaylor/libbacktrace.git \
     && cd libbacktrace \
     && CFLAGS="-O2 ${SECTION_FLAGS}" ./configure --enable-static --disable-shared \
@@ -178,11 +185,33 @@ RUN git clone https://github.com/ianlancetaylor/libbacktrace.git \
     && cd .. \
     && rm -r libbacktrace
 
-# Install bats-core directly into the build image
+# Install bats-core, plus the bats-support/bats-assert/bats-file helper
+# libraries FTL's test suite loads via BATS_LIB_PATH
+FROM base AS bats-build
+ARG BATS_CORE_VER
+ARG BATS_SUPPORT_VER
+ARG BATS_ASSERT_VER
+ARG BATS_FILE_VER
 RUN git clone --depth=1 --single-branch --branch "${BATS_CORE_VER}" https://github.com/bats-core/bats-core.git /bats/bats-core \
   && git clone --depth=1 --single-branch --branch "${BATS_SUPPORT_VER}" https://github.com/bats-core/bats-support /bats/bats-support \
   && git clone --depth=1 --single-branch --branch "${BATS_ASSERT_VER}" https://github.com/bats-core/bats-assert  /bats/bats-assert \
   && git clone --depth=1 --single-branch --branch "${BATS_FILE_VER}" https://github.com/bats-core/bats-file    /bats/bats-file
+
+FROM base AS build
+
+ENV STATIC=true
+ENV TEST=true
+
+COPY --link --parents --from=termcap-build /usr/local/lib /usr/local/include /
+COPY --link --parents --from=readline-build /usr/local/lib /usr/local/include /
+COPY --link --parents --from=nettle-build /usr/local/lib /usr/local/include /
+COPY --link --parents --from=openssl-build /usr/local/lib /usr/local/include /
+COPY --link --parents --from=nghttp2-build /usr/local/lib /usr/local/include /
+COPY --link --parents --from=nghttp3-build /usr/local/lib /usr/local/include /
+COPY --link --parents --from=ngtcp2-build /usr/local/lib /usr/local/include /
+COPY --link --parents --from=libbacktrace-build /usr/local/lib /usr/local/include /
+COPY --link --from=bats-build /bats /bats
+
 ENV BATS=/bats/bats-core/bin/bats
 ENV BATS_LIB_PATH=/bats/
 
@@ -197,11 +226,22 @@ ARG CI_ARCH="$TARGETPLATFORM"
 ARG GIT_TAG="test-build"
 ARG GIT_BRANCH="special/CI_development"
 
-
-# Test compile FTL's development branch, the result is removed from the final container
-# Run the full test suite to ensure that the container is still capable of running the tests
-# Ensure that the TERM environment variable is set for BATS color output
-RUN git clone https://github.com/pi-hole/FTL.git --branch "${GIT_BRANCH}" \
+# Compile FTL's development branch and run the full test suite, to prove the
+# toolchain can still build and test FTL. Nothing here is kept - this stage is a
+# gate, not an artifact - so the checkout and everything run.sh writes outside it
+# (/etc/pihole, /var/log/pihole, /etc/dnsmasq.d, /var/lib/powerdns, the pihole
+# user, ...) is simply left in place and discarded with the stage.
+#
+# Build this target directly to debug a failure locally: the FTL tree and all
+# logs survive for inspection.
+#
+# CACHEBUST is fed a per-run value so this layer never comes from cache - it must
+# re-validate against current FTL every time, and a cache hit here would silently
+# skip building and testing FTL entirely.
+# TERM is set for BATS colour output during the test run.
+ARG CACHEBUST
+RUN echo "Validating toolchain against FTL (build ${CACHEBUST})" \
+    && git clone https://github.com/pi-hole/FTL.git --branch "${GIT_BRANCH}" \
     && cd FTL \
     && bash build.sh "-DSTATIC=${STATIC} -DBUILD_TAR_REGRESSION=ON -DBUILD_GZIP_REGRESSION=ON -DBUILD_DOTDOH_REGRESSION=ON" \
     && readelf -A ./pihole-FTL \
@@ -209,4 +249,19 @@ RUN git clone https://github.com/pi-hole/FTL.git --branch "${GIT_BRANCH}" \
     && bash test/arch_test.sh \
     && TERM=${TERM:-xterm} bash test/run.sh \
     && cd .. \
-    && rm -r FTL
+    && echo "${CACHEBUST}" > /toolchain-validated
+
+# The published image: the toolchain exactly as `build` produced it, with none of
+# the state the test run leaves behind.
+#
+# Dockerfiles have no way to say "this stage depends on that one", so the COPY is
+# what pulls `test` into the build graph - without it BuildKit would see an
+# orphaned stage, never run it, and happily publish an untested toolchain. Since
+# the copy needs test's filesystem to resolve, and test's CACHEBUST layer can
+# never be served from cache, FTL is rebuilt and retested on every build and a
+# failure there fails this target before it exists.
+#
+# /toolchain-validated holds the CACHEBUST value, so the image also records which
+# CI run validated it.
+FROM build AS publish
+COPY --from=test /toolchain-validated /toolchain-validated

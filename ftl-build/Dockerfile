@@ -223,7 +223,40 @@ RUN for lib in termcap readline history nettle hogweed ssl crypto nghttp2 nghttp
         [ -f "/usr/local/lib/lib${lib}.a" ] || { echo "missing lib${lib}.a" >&2; exit 1; }; \
     done
 
-FROM build AS test
+# Both FTL compiles below - the ccache seed and the validation run - have to
+# invoke the compiler identically or ccache never hits, so everything they share
+# is defined here and neither stage can drift away from it.
+FROM build AS ftl-validate
+ENV CCACHE_DIR=/ccache
+ENV CCACHE_MAXSIZE=500M
+ENV FTL_CMAKE_ARGS="-DSTATIC=${STATIC} -DBUILD_TAR_REGRESSION=ON -DBUILD_GZIP_REGRESSION=ON -DBUILD_DOTDOH_REGRESSION=ON -DCMAKE_C_COMPILER_LAUNCHER=ccache"
+
+# Compiling FTL is what the validation below actually costs, and most of it is
+# spent on translation units FTL never touches: sqlite3.c alone is the critical
+# path on every platform (~15 min of a ~29 min riscv64 build under QEMU). This
+# stage compiles FTL once so the validation run can reuse the objects.
+#
+# It is deliberately not fed CACHEBUST, and nothing else expires it either: the
+# layer should be served from the layer cache for as long as it survives there.
+# That cannot mask a toolchain regression, because this stage sits on top of
+# every toolchain layer - a new alpine digest, a different package set or a
+# rebuilt library invalidates it and forces a fresh compile. It does go stale
+# against FTL, which is harmless: changed sources miss and are compiled, and an
+# unchanged source cannot yield a different object from an unchanged compiler.
+#
+# Only /ccache survives; the checkout is dropped so the exported layer stays
+# small (~28 MB), as the GHA cache is a shared, size-limited resource.
+FROM ftl-validate AS ccache-seed
+ARG GIT_BRANCH="special/CI_development"
+RUN git clone https://github.com/pi-hole/FTL.git --branch "${GIT_BRANCH}" \
+    && cd FTL \
+    && bash build.sh "${FTL_CMAKE_ARGS}" \
+    && cd .. \
+    && rm -rf FTL \
+    && ccache --show-stats \
+    && ccache --zero-stats
+
+FROM ftl-validate AS test
 
 # For FTL test compilation
 ARG TARGETPLATFORM
@@ -249,11 +282,18 @@ ARG GIT_BRANCH="special/CI_development"
 # For local builds, set `--build-arg CACHEBUST=$(date +%s)` to force a rebuild and test run.
 #
 # TERM is set for BATS colour output during the test run.
+#
+# The seeded ccache only ever short-circuits compiling a translation unit that
+# is bit-identical to one already compiled with the same compiler and flags.
+# Everything else - the link, the checksum, arch_test.sh and the full test suite
+# - still runs from scratch on every build.
+COPY --from=ccache-seed /ccache /ccache
 ARG CACHEBUST=local
 RUN echo "Validating toolchain against FTL (build ${CACHEBUST})" \
     && git clone https://github.com/pi-hole/FTL.git --branch "${GIT_BRANCH}" \
     && cd FTL \
-    && bash build.sh "-DSTATIC=${STATIC} -DBUILD_TAR_REGRESSION=ON -DBUILD_GZIP_REGRESSION=ON -DBUILD_DOTDOH_REGRESSION=ON" \
+    && bash build.sh "${FTL_CMAKE_ARGS}" \
+    && ccache --show-stats \
     && readelf -A ./pihole-FTL \
     && readelf -l ./pihole-FTL \
     && bash test/arch_test.sh \

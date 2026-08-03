@@ -18,6 +18,7 @@ RUN apk add --no-cache \
         bash \
         bind-tools \
         binutils \
+        ccache \
         clang \
         cmake \
         curl \

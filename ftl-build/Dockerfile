@@ -248,7 +248,7 @@ ENV FTL_CMAKE_ARGS="-DSTATIC=${STATIC} -DBUILD_TAR_REGRESSION=ON -DBUILD_GZIP_RE
 # small (~28 MB), as the GHA cache is a shared, size-limited resource.
 FROM ftl-validate AS ccache-seed
 ARG GIT_BRANCH="special/CI_development"
-RUN git clone https://github.com/pi-hole/FTL.git --branch "${GIT_BRANCH}" \
+RUN git clone https://github.com/pi-hole/FTL.git --branch "${GIT_BRANCH}" --single-branch \
     && cd FTL \
     && bash build.sh "${FTL_CMAKE_ARGS}" \
     && cd .. \

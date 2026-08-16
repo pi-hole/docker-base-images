@@ -6,6 +6,7 @@ ARG opensslversion=4.0.0
 ARG nghttp2version=1.69.0
 ARG nghttp3version=1.17.0
 ARG ngtcp2version=1.24.0
+ARG curlversion=8.21.0
 ARG BATS_CORE_VER=v1.14.0
 ARG BATS_SUPPORT_VER=v0.3.0
 ARG BATS_ASSERT_VER=v2.2.4
@@ -51,7 +52,9 @@ RUN apk add --no-cache \
         shadow \
         sqlite \
         xxd \
-        zip
+        zip \
+        zlib-dev \
+        zlib-static
 
 # Build every bundled static library with per-function/data sections so FTL
 # can drop unreferenced code at link time with -Wl,--gc-sections. Set on `base`
@@ -172,6 +175,53 @@ RUN curl -sSL https://ftl.pi-hole.net/libraries/ngtcp2-${ngtcp2version}.tar.gz |
     && cd .. \
     && rm -r ngtcp2-${ngtcp2version}
 
+# Static libcurl for FTL's downloader, built against the static OpenSSL 4.0
+# above. Alpine's curl-static is no use here: it is linked against the system
+# OpenSSL 3 and pulls in c-ares, psl, zlib, brotli and zstd, none of which we
+# ship. The protocol set is trimmed to the five FTL offers - http, https, file,
+# ftp and ftps - which matters beyond size, as a build that still knew about
+# ipfs:// or ws:// would let a URL reach places a downloader has no business
+# reaching. SMB is left out despite being asked for: curl only speaks the SMBv1
+# that current servers refuse. curl's own DoH resolver is off too, FTL being the
+# resolver, and of the authentication methods only Basic and Digest survive.
+# The extras that are kept are cheap, as nghttp2 and libidn2 are already linked
+# into FTL: HTTP/2 and internationalized hostnames cost 84 KB together, gzipped
+# transfers another 35 KB. HTTP/3 is not worth its ~500 KB, since it would drag
+# ngtcp2 onto the link line for something curl only uses when asked by hand.
+# Only lib/ and include/ are installed, as the command-line tool would be built
+# for nothing and the image already ships Alpine's curl.
+# --enable-option-checking=fatal so a version bump that drops one of these flags
+# fails here rather than silently building a fatter, less restricted library.
+FROM base AS curl-build
+ARG curlversion
+COPY --from=openssl-build /usr/local/ /usr/local/
+RUN curl -sSL https://ftl.pi-hole.net/libraries/curl-${curlversion}.tar.gz | tar -xz \
+    && cd curl-${curlversion} \
+    && CFLAGS="-O2 ${SECTION_FLAGS}" ./configure \
+        --enable-option-checking=fatal \
+        --enable-static --disable-shared \
+        --with-openssl=/usr/local \
+        --with-ca-bundle=/etc/ssl/certs/ca-certificates.crt --with-ca-path=/etc/ssl/certs \
+        --with-zlib --with-libidn2 --with-nghttp2 \
+        --without-brotli --without-zstd --without-libpsl \
+        --without-nghttp3 --without-ngtcp2 --without-libssh --without-libssh2 \
+        --without-libuv --without-gssapi \
+        --disable-ares --disable-dict --disable-gopher \
+        --disable-imap --disable-ipfs --disable-ldap --disable-ldaps --disable-mqtt \
+        --disable-pop3 --disable-rtsp --disable-smb --disable-smtp --disable-telnet \
+        --disable-tftp --disable-websockets \
+        --disable-alt-svc --disable-cookies --disable-doh --disable-ech --disable-hsts \
+        --disable-bearer-auth --disable-negotiate-auth --disable-kerberos-auth --disable-aws \
+        --disable-mime --disable-form-api --disable-netrc --disable-ntlm \
+        --disable-tls-srp --disable-unix-sockets \
+        --disable-docs --disable-manual --disable-libcurl-option --disable-get-easy-options \
+        --disable-progress-meter \
+    && make -j $(nproc) -C lib install \
+    && make -j $(nproc) -C include install \
+    && ls -l /usr/local/lib/libcurl.a \
+    && cd .. \
+    && rm -r curl-${curlversion}
+
 # Build static libbacktrace
 FROM base AS libbacktrace-build
 RUN git clone https://github.com/ianlancetaylor/libbacktrace.git \
@@ -204,6 +254,7 @@ COPY --link --parents --from=openssl-build /usr/local/lib /usr/local/include /
 COPY --link --parents --from=nghttp2-build /usr/local/lib /usr/local/include /
 COPY --link --parents --from=nghttp3-build /usr/local/lib /usr/local/include /
 COPY --link --parents --from=ngtcp2-build /usr/local/lib /usr/local/include /
+COPY --link --parents --from=curl-build /usr/local/lib /usr/local/include /
 COPY --link --parents --from=libbacktrace-build /usr/local/lib /usr/local/include /
 
 FROM base AS build
@@ -219,7 +270,7 @@ ENV BATS_LIB_PATH=/bats/
 
 # Verify the static libraries are present and correct. This uses a POSIX shell
 # loop so it works with Alpine's default /bin/sh (no brace expansion).
-RUN for lib in termcap readline history nettle hogweed ssl crypto nghttp2 nghttp3 ngtcp2 ngtcp2_crypto_ossl backtrace; do \
+RUN for lib in termcap readline history nettle hogweed ssl crypto nghttp2 nghttp3 ngtcp2 ngtcp2_crypto_ossl curl backtrace; do \
         [ -f "/usr/local/lib/lib${lib}.a" ] || { echo "missing lib${lib}.a" >&2; exit 1; }; \
     done
 

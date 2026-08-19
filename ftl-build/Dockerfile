@@ -268,7 +268,7 @@ COPY --link --from=bats-build /bats /bats
 ENV BATS=/bats/bats-core/bin/bats
 ENV BATS_LIB_PATH=/bats/
 
-# Verify the static libraries are present and correct. This uses a POSIX shell
+# Verify the static libraries are present. This uses a POSIX shell
 # loop so it works with Alpine's default /bin/sh (no brace expansion).
 RUN for lib in termcap readline history nettle hogweed ssl crypto nghttp2 nghttp3 ngtcp2 ngtcp2_crypto_ossl curl backtrace; do \
         [ -f "/usr/local/lib/lib${lib}.a" ] || { echo "missing lib${lib}.a" >&2; exit 1; }; \

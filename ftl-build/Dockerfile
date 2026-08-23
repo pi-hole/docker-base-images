@@ -195,6 +195,7 @@ RUN curl -sSL https://ftl.pi-hole.net/libraries/ngtcp2-${ngtcp2version}.tar.gz |
 FROM base AS curl-build
 ARG curlversion
 COPY --from=openssl-build /usr/local/ /usr/local/
+COPY --from=nghttp2-build /usr/local/ /usr/local/
 RUN curl -sSL https://ftl.pi-hole.net/libraries/curl-${curlversion}.tar.gz | tar -xz \
     && cd curl-${curlversion} \
     && CFLAGS="-O2 ${SECTION_FLAGS}" ./configure \
@@ -219,6 +220,14 @@ RUN curl -sSL https://ftl.pi-hole.net/libraries/curl-${curlversion}.tar.gz | tar
     && make -j $(nproc) -C lib install \
     && make -j $(nproc) -C include install \
     && ls -l /usr/local/lib/libcurl.a \
+    # The flags above ask for these, and configure answers by quietly leaving
+    # out whatever it could not find - a library missing from this stage costs
+    # nothing at build time and shows up as a feature that was never there
+    && undefined="$(nm -u /usr/local/lib/libcurl.a)" \
+    && for sym in nghttp2_ idn2_ inflate; do \
+           echo "$undefined" | grep -q "$sym" \
+           || { echo "libcurl was built without $sym - a dependency is missing from this stage"; exit 1; }; \
+       done \
     && cd .. \
     && rm -r curl-${curlversion}
 

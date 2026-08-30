@@ -313,7 +313,7 @@ ARG CACHEBUST=local
 RUN echo "Validating toolchain against FTL (build ${CACHEBUST})" \
     && git clone https://github.com/pi-hole/FTL.git --branch "${GIT_BRANCH}" \
     && cd FTL \
-    && bash build.sh "-DSTATIC=${STATIC} -DBUILD_TAR_REGRESSION=ON -DBUILD_GZIP_REGRESSION=ON -DBUILD_DOTDOH_REGRESSION=ON" \
+    && bash build.sh "-DSTATIC=${STATIC} -DBUILD_TAR_REGRESSION=ON -DBUILD_GZIP_REGRESSION=ON -DBUILD_DOTDOH_REGRESSION=ON -DBUILD_PTR_RESPONSE_REGRESSION=ON" \
     && readelf -A ./pihole-FTL \
     && readelf -l ./pihole-FTL \
     && bash test/arch_test.sh \

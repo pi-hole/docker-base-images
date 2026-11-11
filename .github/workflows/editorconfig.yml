@@ -13,7 +13,7 @@ jobs:
   editorconfig-checker:
     name: editorconfig-checker
     if: github.event.pull_request.draft == false
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
     permissions:
       contents: read # to read the repository contents
     steps:

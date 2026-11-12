@@ -4,9 +4,18 @@ on:
   schedule:
     - cron: "0 0 * * *"
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions: {}
+
 jobs:
     housekeeping:
+        name: housekeeping
         runs-on: ubuntu-latest
+        permissions:
+          packages: write # to delete untagged package versions
         steps:
             -
                 name: Delete all containers from repository without tags
